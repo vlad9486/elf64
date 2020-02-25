@@ -51,7 +51,7 @@ impl From<ProgramType> for u32 {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ProgramHeader {
     type_: ProgramType,
-    flags: u64,
+    flags: u32,
     file_offset: Offset,
     virtual_address: Address,
     physical_address: Address,
@@ -75,7 +75,7 @@ impl Entry for ProgramHeader {
         match encoding {
             Encoding::Little => Ok(ProgramHeader {
                 type_: LittleEndian::read_u32(&slice[0x00..0x04]).into(),
-                flags: LittleEndian::read_u64(&slice[0x04..0x08]),
+                flags: LittleEndian::read_u32(&slice[0x04..0x08]),
                 file_offset: LittleEndian::read_u64(&slice[0x08..0x10]),
                 virtual_address: LittleEndian::read_u64(&slice[0x10..0x18]),
                 physical_address: LittleEndian::read_u64(&slice[0x18..0x20]),
@@ -85,7 +85,7 @@ impl Entry for ProgramHeader {
             }),
             Encoding::Big => Ok(ProgramHeader {
                 type_: BigEndian::read_u32(&slice[0x00..0x04]).into(),
-                flags: BigEndian::read_u64(&slice[0x04..0x08]),
+                flags: BigEndian::read_u32(&slice[0x04..0x08]),
                 file_offset: BigEndian::read_u64(&slice[0x08..0x10]),
                 virtual_address: BigEndian::read_u64(&slice[0x10..0x18]),
                 physical_address: BigEndian::read_u64(&slice[0x18..0x20]),
@@ -126,7 +126,7 @@ pub enum ProgramData<'a> {
 #[derive(Clone)]
 pub struct Program<'a> {
     pub data: ProgramData<'a>,
-    pub flags: u64,
+    pub flags: u32,
     pub memory_size: u64,
     pub address_alignment: u64,
 }

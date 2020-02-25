@@ -40,7 +40,7 @@ where
     }
 
     pub fn pick(&self, index: usize) -> Result<E, E::Error> {
-        let end = index + E::SIZE;
-        E::new(&self.slice[index..end], self.encoding.clone())
+        let start = index * E::SIZE;
+        E::new(&self.slice[start..(start + E::SIZE)], self.encoding.clone())
     }
 }
