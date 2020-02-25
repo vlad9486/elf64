@@ -1,52 +1,4 @@
-use super::{Error, Encoding, SectionHeader, SymbolEntry, ProgramHeader, NoteEntry};
-
-#[derive(Clone)]
-pub struct ProgramHeaderTable<'a> {
-    slice: &'a [u8],
-    encoding: Encoding,
-}
-
-impl<'a> ProgramHeaderTable<'a> {
-    pub fn new(slice: &'a [u8], encoding: Encoding) -> Self {
-        ProgramHeaderTable {
-            slice: slice,
-            encoding: encoding,
-        }
-    }
-
-    pub fn size(&self) -> usize {
-        self.slice.len() / ProgramHeader::SIZE
-    }
-
-    pub fn pick(&self, index: usize) -> Result<ProgramHeader, Error> {
-        let end = index + ProgramHeader::SIZE;
-        ProgramHeader::new(&self.slice[index..end], self.encoding.clone())
-    }
-}
-
-#[derive(Clone)]
-pub struct SectionHeaderTable<'a> {
-    slice: &'a [u8],
-    encoding: Encoding,
-}
-
-impl<'a> SectionHeaderTable<'a> {
-    pub fn new(slice: &'a [u8], encoding: Encoding) -> Self {
-        SectionHeaderTable {
-            slice: slice,
-            encoding: encoding,
-        }
-    }
-
-    pub fn size(&self) -> usize {
-        self.slice.len() / SectionHeader::SIZE
-    }
-
-    pub fn pick(&self, index: usize) -> Result<SectionHeader, Error> {
-        let end = index + SectionHeader::SIZE;
-        SectionHeader::new(&self.slice[index..end], self.encoding.clone())
-    }
-}
+use super::{Error, Encoding};
 
 #[derive(Clone)]
 pub struct StringTable<'a> {
@@ -78,28 +30,11 @@ impl<'a> StringTable<'a> {
     }
 }
 
-#[derive(Clone)]
-pub struct SymbolTable<'a> {
-    slice: &'a [u8],
-    encoding: Encoding,
-}
-
-impl<'a> SymbolTable<'a> {
-    pub fn new(slice: &'a [u8], encoding: Encoding) -> Self {
-        SymbolTable {
-            slice: slice,
-            encoding: encoding,
-        }
-    }
-
-    pub fn size(&self) -> usize {
-        self.slice.len() / SymbolEntry::SIZE
-    }
-
-    pub fn pick(&self, index: usize) -> Result<SymbolEntry, Error> {
-        let end = index + SymbolEntry::SIZE;
-        SymbolEntry::new(&self.slice[index..end], self.encoding.clone())
-    }
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct NoteEntry<'a> {
+    pub type_: u64,
+    pub name: &'a str,
+    pub description: &'a [u8],
 }
 
 #[derive(Clone)]
@@ -124,11 +59,7 @@ impl<'a> NoteTable<'a> {
             return Err(Error::NotEnoughData);
         };
 
-        let align8 = |x: usize| if x % 8 == 0 { 
-            x
-        } else {
-            x + 8 - x % 8
-        };
+        let align8 = |x: usize| if x % 8 == 0 { x } else { x + 8 - x % 8 };
 
         let (name_size, description_size, type_) = match self.encoding {
             Encoding::Little => (

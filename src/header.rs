@@ -1,5 +1,5 @@
 use super::{
-    Address, Offset, Error, Index, SectionHeader, ProgramHeader, ProgramHeaderTable,
+    Error, Address, Offset, Index, SectionHeader, ProgramHeader, ProgramHeaderTable,
     SectionHeaderTable,
 };
 

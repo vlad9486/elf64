@@ -151,3 +151,27 @@ impl SectionHeader {
         }
     }
 }
+
+#[derive(Clone)]
+pub struct SectionHeaderTable<'a> {
+    slice: &'a [u8],
+    encoding: Encoding,
+}
+
+impl<'a> SectionHeaderTable<'a> {
+    pub fn new(slice: &'a [u8], encoding: Encoding) -> Self {
+        SectionHeaderTable {
+            slice: slice,
+            encoding: encoding,
+        }
+    }
+
+    pub fn size(&self) -> usize {
+        self.slice.len() / SectionHeader::SIZE
+    }
+
+    pub fn pick(&self, index: usize) -> Result<SectionHeader, Error> {
+        let end = index + SectionHeader::SIZE;
+        SectionHeader::new(&self.slice[index..end], self.encoding.clone())
+    }
+}

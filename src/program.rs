@@ -94,3 +94,27 @@ impl ProgramHeader {
         }
     }
 }
+
+#[derive(Clone)]
+pub struct ProgramHeaderTable<'a> {
+    slice: &'a [u8],
+    encoding: Encoding,
+}
+
+impl<'a> ProgramHeaderTable<'a> {
+    pub fn new(slice: &'a [u8], encoding: Encoding) -> Self {
+        ProgramHeaderTable {
+            slice: slice,
+            encoding: encoding,
+        }
+    }
+
+    pub fn size(&self) -> usize {
+        self.slice.len() / ProgramHeader::SIZE
+    }
+
+    pub fn pick(&self, index: usize) -> Result<ProgramHeader, Error> {
+        let end = index + ProgramHeader::SIZE;
+        ProgramHeader::new(&self.slice[index..end], self.encoding.clone())
+    }
+}

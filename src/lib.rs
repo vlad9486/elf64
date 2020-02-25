@@ -8,18 +8,17 @@ pub use self::common::{Address, Offset, Error};
 mod header;
 pub use self::header::{Class, Encoding, Abi, Type, Machine, Header};
 
-mod tables;
-pub use self::tables::{
-    ProgramHeaderTable, SectionHeaderTable, StringTable, SymbolTable, NoteTable,
-};
-
 mod section;
-pub use self::section::{Index, SectionType, SectionHeader};
+pub use self::section::{Index, SectionType, SectionHeader, SectionHeaderTable};
 
 mod program;
-pub use self::program::{ProgramType, ProgramHeader};
+pub use self::program::{ProgramType, ProgramHeader, ProgramHeaderTable};
 
-mod entries;
-pub use self::entries::{
-    SymbolBinding, SymbolType, SymbolInfo, SymbolEntry, RelEntry, RelaEntry, NoteEntry,
-};
+mod symbol;
+pub use self::symbol::{SymbolBinding, SymbolType, SymbolInfo, SymbolEntry, SymbolTable};
+
+mod rel_rela;
+pub use self::rel_rela::{RelEntry, RelaEntry};
+
+mod string_note;
+pub use self::string_note::{StringTable, NoteEntry, NoteTable};
