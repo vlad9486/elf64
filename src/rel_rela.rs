@@ -1,4 +1,4 @@
-use super::{Address, Error, Encoding};
+use super::{Address, Error, Encoding, Entry};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct RelEntry {
@@ -7,10 +7,12 @@ pub struct RelEntry {
     relocation_type: u32,
 }
 
-impl RelEntry {
-    pub const SIZE: usize = 0x10;
+impl Entry for RelEntry {
+    type Error = Error;
 
-    pub fn new(slice: &[u8], encoding: Encoding) -> Result<Self, Error> {
+    const SIZE: usize = 0x10;
+
+    fn new(slice: &[u8], encoding: Encoding) -> Result<Self, Self::Error> {
         use byteorder::{ByteOrder, LittleEndian, BigEndian};
 
         if slice.len() < Self::SIZE {
@@ -46,10 +48,12 @@ pub struct RelaEntry {
     addend: i64,
 }
 
-impl RelaEntry {
-    pub const SIZE: usize = 0x18;
+impl Entry for RelaEntry {
+    type Error = Error;
 
-    pub fn new(slice: &[u8], encoding: Encoding) -> Result<Self, Error> {
+    const SIZE: usize = 0x18;
+
+    fn new(slice: &[u8], encoding: Encoding) -> Result<Self, Self::Error> {
         use byteorder::{ByteOrder, LittleEndian, BigEndian};
 
         if slice.len() < Self::SIZE {

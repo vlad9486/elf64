@@ -1,4 +1,4 @@
-use super::{Address, Offset, Error, Encoding};
+use super::{Address, Offset, Error, Encoding, Entry};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum Index {
@@ -113,10 +113,12 @@ pub struct SectionHeader {
     number_of_entries: u64,
 }
 
-impl SectionHeader {
-    pub const SIZE: usize = 0x40;
+impl Entry for SectionHeader {
+    type Error = Error;
 
-    pub fn new(slice: &[u8], encoding: Encoding) -> Result<Self, Error> {
+    const SIZE: usize = 0x40;
+
+    fn new(slice: &[u8], encoding: Encoding) -> Result<Self, Self::Error> {
         use byteorder::{ByteOrder, LittleEndian, BigEndian};
 
         if slice.len() < Self::SIZE {
@@ -149,29 +151,5 @@ impl SectionHeader {
                 number_of_entries: BigEndian::read_u64(&slice[0x38..0x40]),
             }),
         }
-    }
-}
-
-#[derive(Clone)]
-pub struct SectionHeaderTable<'a> {
-    slice: &'a [u8],
-    encoding: Encoding,
-}
-
-impl<'a> SectionHeaderTable<'a> {
-    pub fn new(slice: &'a [u8], encoding: Encoding) -> Self {
-        SectionHeaderTable {
-            slice: slice,
-            encoding: encoding,
-        }
-    }
-
-    pub fn size(&self) -> usize {
-        self.slice.len() / SectionHeader::SIZE
-    }
-
-    pub fn pick(&self, index: usize) -> Result<SectionHeader, Error> {
-        let end = index + SectionHeader::SIZE;
-        SectionHeader::new(&self.slice[index..end], self.encoding.clone())
     }
 }

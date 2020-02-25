@@ -1,4 +1,4 @@
-use super::{Address, Error, Encoding, Index};
+use super::{Address, Error, Encoding, Index, Entry};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum SymbolBinding {
@@ -91,10 +91,12 @@ pub struct SymbolEntry {
     size: u64,
 }
 
-impl SymbolEntry {
-    pub const SIZE: usize = 0x18;
+impl Entry for SymbolEntry {
+    type Error = Error;
 
-    pub fn new(slice: &[u8], encoding: Encoding) -> Result<Self, Error> {
+    const SIZE: usize = 0x18;
+
+    fn new(slice: &[u8], encoding: Encoding) -> Result<Self, Self::Error> {
         use byteorder::{ByteOrder, LittleEndian, BigEndian};
 
         if slice.len() < Self::SIZE {
@@ -123,29 +125,5 @@ impl SymbolEntry {
                 size: BigEndian::read_u64(&slice[0x10..0x18]),
             }),
         }
-    }
-}
-
-#[derive(Clone)]
-pub struct SymbolTable<'a> {
-    slice: &'a [u8],
-    encoding: Encoding,
-}
-
-impl<'a> SymbolTable<'a> {
-    pub fn new(slice: &'a [u8], encoding: Encoding) -> Self {
-        SymbolTable {
-            slice: slice,
-            encoding: encoding,
-        }
-    }
-
-    pub fn size(&self) -> usize {
-        self.slice.len() / SymbolEntry::SIZE
-    }
-
-    pub fn pick(&self, index: usize) -> Result<SymbolEntry, Error> {
-        let end = index + SymbolEntry::SIZE;
-        SymbolEntry::new(&self.slice[index..end], self.encoding.clone())
     }
 }

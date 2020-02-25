@@ -1,7 +1,4 @@
-use super::{
-    Error, Address, Offset, Index, SectionHeader, ProgramHeader, ProgramHeaderTable,
-    SectionHeaderTable,
-};
+use super::{Error, Address, Offset, Index, SectionHeader, ProgramHeader, Entry, Table};
 
 use core::convert::TryFrom;
 
@@ -363,15 +360,15 @@ impl<'a> Header<'a> {
         self.section_names.clone()
     }
 
-    pub fn program_header_table(&self) -> ProgramHeaderTable<'a> {
+    pub fn program_header_table(&self) -> Table<'a, ProgramHeader> {
         let start = self.program_headers_offset as usize;
         let end = start + (self.program_header_number as usize) * ProgramHeader::SIZE;
-        ProgramHeaderTable::new(&self.raw[start..end], self.encoding())
+        Table::new(&self.raw[start..end], self.encoding())
     }
 
-    pub fn section_header_table(&self) -> SectionHeaderTable<'a> {
+    pub fn section_header_table(&self) -> Table<'a, SectionHeader> {
         let start = self.section_headers_offset as usize;
         let end = start + (self.section_header_number as usize) * SectionHeader::SIZE;
-        SectionHeaderTable::new(&self.raw[start..end], self.encoding())
+        Table::new(&self.raw[start..end], self.encoding())
     }
 }

@@ -1,4 +1,4 @@
-use super::{Address, Offset, Error, Encoding};
+use super::{Address, Offset, Error, Encoding, Entry};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum ProgramType {
@@ -60,10 +60,12 @@ pub struct ProgramHeader {
     address_alignment: u64,
 }
 
-impl ProgramHeader {
-    pub const SIZE: usize = 0x38;
+impl Entry for ProgramHeader {
+    type Error = Error;
 
-    pub fn new(slice: &[u8], encoding: Encoding) -> Result<Self, Error> {
+    const SIZE: usize = 0x38;
+
+    fn new(slice: &[u8], encoding: Encoding) -> Result<Self, Self::Error> {
         use byteorder::{ByteOrder, LittleEndian, BigEndian};
 
         if slice.len() < Self::SIZE {
@@ -92,29 +94,5 @@ impl ProgramHeader {
                 address_alignment: BigEndian::read_u64(&slice[0x30..0x38]),
             }),
         }
-    }
-}
-
-#[derive(Clone)]
-pub struct ProgramHeaderTable<'a> {
-    slice: &'a [u8],
-    encoding: Encoding,
-}
-
-impl<'a> ProgramHeaderTable<'a> {
-    pub fn new(slice: &'a [u8], encoding: Encoding) -> Self {
-        ProgramHeaderTable {
-            slice: slice,
-            encoding: encoding,
-        }
-    }
-
-    pub fn size(&self) -> usize {
-        self.slice.len() / ProgramHeader::SIZE
-    }
-
-    pub fn pick(&self, index: usize) -> Result<ProgramHeader, Error> {
-        let end = index + ProgramHeader::SIZE;
-        ProgramHeader::new(&self.slice[index..end], self.encoding.clone())
     }
 }
