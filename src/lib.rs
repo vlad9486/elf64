@@ -12,7 +12,7 @@ mod section;
 pub use self::section::{Index, SectionType, SectionHeader};
 
 mod program;
-pub use self::program::{ProgramType, ProgramHeader};
+pub use self::program::{ProgramType, ProgramHeader, ProgramData, Program};
 
 mod symbol;
 pub use self::symbol::{SymbolBinding, SymbolType, SymbolInfo, SymbolEntry};

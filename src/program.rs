@@ -1,4 +1,4 @@
-use super::{Address, Offset, Error, Encoding, Entry};
+use super::{Address, Offset, Error, Encoding, Entry, Table, NoteTable};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum ProgramType {
@@ -94,5 +94,88 @@ impl Entry for ProgramHeader {
                 address_alignment: BigEndian::read_u64(&slice[0x30..0x38]),
             }),
         }
+    }
+}
+
+#[derive(Clone)]
+pub enum ProgramData<'a> {
+    Null,
+    Load {
+        data: &'a [u8],
+        address: Address,
+    },
+    Note(NoteTable<'a>),
+    ProgramHeaderTable(Table<'a, ProgramHeader>),
+    OsSpecific {
+        code: u32,
+        data: &'a [u8],
+        address: Address,
+    },
+    ProcessorSprcific {
+        code: u32,
+        data: &'a [u8],
+        address: Address,
+    },
+    Unknown {
+        code: u32,
+        data: &'a [u8],
+        address: Address,
+    },
+}
+
+#[derive(Clone)]
+pub struct Program<'a> {
+    pub data: ProgramData<'a>,
+    pub flags: u64,
+    pub memory_size: u64,
+    pub address_alignment: u64,
+}
+
+impl ProgramHeader {
+    pub fn get_data<'a>(
+        &self,
+        raw: &'a [u8],
+        encoding: Encoding,
+    ) -> Result<Option<Program<'a>>, Error> {
+        let start = self.file_offset.clone() as usize;
+        let end = start + (self.file_size.clone() as usize);
+        let slice = &raw[start..end];
+
+        let data = match &self.type_ {
+            &ProgramType::Null => None,
+            &ProgramType::Load => Some(ProgramData::Load {
+                data: slice,
+                address: self.virtual_address.clone(),
+            }),
+            &ProgramType::Dynamic => unimplemented!(),
+            &ProgramType::Interpreter => unimplemented!(),
+            &ProgramType::Note => Some(ProgramData::Note(NoteTable::new(slice, encoding))),
+            &ProgramType::Shlib => None,
+            &ProgramType::ProgramHeaderTable => Some(ProgramData::ProgramHeaderTable(Table::new(slice, encoding))),
+            &ProgramType::OsSpecific(code) => Some(ProgramData::OsSpecific {
+                code: code,
+                data: slice,
+                address: self.virtual_address.clone(),
+            }),
+            &ProgramType::ProcessorSprcific(code) => Some(ProgramData::ProcessorSprcific {
+                code: code,
+                data: slice,
+                address: self.virtual_address.clone(),
+            }),
+            &ProgramType::Unknown(code) => Some(ProgramData::Unknown {
+                code: code,
+                data: slice,
+                address: self.virtual_address.clone(),
+            }),
+        };
+
+        Ok(data.map(|d| {
+            Program {
+                data: d,
+                flags: self.flags.clone(),
+                memory_size: self.memory_size.clone(),
+                address_alignment: self.address_alignment.clone(),
+            }
+        }))
     }
 }
