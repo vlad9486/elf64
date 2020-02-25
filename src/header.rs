@@ -1,6 +1,9 @@
 use super::{Error, Address, Offset, Index, SectionHeader, ProgramHeader, Entry, Table};
 
-use core::convert::TryFrom;
+use core::{
+    convert::TryFrom,
+    fmt,
+};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum Class {
@@ -234,7 +237,7 @@ impl From<Machine> for u16 {
     }
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Eq, PartialEq)]
 pub struct Header<'a> {
     raw: &'a [u8],
     identifier: Identifier,
@@ -248,6 +251,24 @@ pub struct Header<'a> {
     program_header_number: u16,
     section_header_number: u16,
     section_names: Index,
+}
+
+impl<'a> fmt::Debug for Header<'a> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("Header")
+            .field("class", &self.class())
+            .field("encoding", &self.encoding())
+            .field("version", &self.version())
+            .field("abi", &self.abi())
+            .field("abi_version", &self.abi_version())
+            .field("type", &self.type_())
+            .field("machine", &self.machine())
+            .field("format_version", &self.format_version())
+            .field("entry", &format_args!("0x{:016x}", self.entry()))
+            .field("flags", &self.flags())
+            .field("section_names", &self.section_names())
+            .finish()
+    }
 }
 
 impl<'a> Header<'a> {
