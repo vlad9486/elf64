@@ -2,8 +2,11 @@
 #![forbid(unsafe_code)]
 #![allow(non_shorthand_field_patterns)]
 
+#[macro_use]
+extern crate bitflags;
+
 mod common;
-pub use self::common::{Address, Offset, Error};
+pub use self::common::{Address, Offset, Error, Flags};
 
 mod header;
 pub use self::header::{Class, Encoding, Abi, Type, Machine, Header};

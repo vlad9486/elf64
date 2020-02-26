@@ -14,3 +14,11 @@ pub enum Error {
     UnexpectedProgramHeaderSize,
     UnexpectedSectionHeaderSize,
 }
+
+bitflags! {
+    pub struct Flags: u32 {
+        const WRITE = 0b00000001;
+        const ALLOC = 0b00000010;
+        const EXECINSTR = 0b00000100;
+    }
+}

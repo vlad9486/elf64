@@ -1,4 +1,6 @@
-use super::{Address, Offset, Error, Encoding, Entry};
+use super::{Address, Offset, Error, Flags, Encoding, Entry};
+
+use core::fmt;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum Index {
@@ -99,11 +101,11 @@ impl From<SectionType> for u32 {
     }
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Eq, PartialEq)]
 pub struct SectionHeader {
     name: u32,
     type_: SectionType,
-    flags: u64,
+    flags: Flags,
     address: Address,
     offset: Offset,
     size: u64,
@@ -111,6 +113,23 @@ pub struct SectionHeader {
     info: SectionType,
     address_alignment: u64,
     number_of_entries: u64,
+}
+
+impl<'a> fmt::Debug for SectionHeader {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("SectionHeader")
+            .field("name", &self.name)
+            .field("type", &self.type_)
+            .field("flags", &self.flags)
+            .field("address", &format_args!("0x{:016x}", self.address))
+            .field("offset", &format_args!("0x{:016x}", self.offset))
+            .field("size", &format_args!("0x{:016x}", self.size))
+            .field("link", &self.link)
+            .field("info", &self.info)
+            .field("address_alignment", &format_args!("0x{:016x}", self.address_alignment))
+            .field("number_of_entries", &self.number_of_entries)
+            .finish()
+    }
 }
 
 impl Entry for SectionHeader {
@@ -125,11 +144,12 @@ impl Entry for SectionHeader {
             return Err(Error::NotEnoughData);
         };
 
+        // WARNING: slice[0x0c..0x10] ignored
         match encoding {
             Encoding::Little => Ok(SectionHeader {
                 name: LittleEndian::read_u32(&slice[0x00..0x04]),
                 type_: LittleEndian::read_u32(&slice[0x04..0x08]).into(),
-                flags: LittleEndian::read_u64(&slice[0x08..0x10]),
+                flags: Flags::from_bits_truncate(LittleEndian::read_u32(&slice[0x08..0x0c])),
                 address: LittleEndian::read_u64(&slice[0x10..0x18]),
                 offset: LittleEndian::read_u64(&slice[0x18..0x20]),
                 size: LittleEndian::read_u64(&slice[0x20..0x28]),
@@ -141,7 +161,7 @@ impl Entry for SectionHeader {
             Encoding::Big => Ok(SectionHeader {
                 name: BigEndian::read_u32(&slice[0x00..0x04]),
                 type_: BigEndian::read_u32(&slice[0x04..0x08]).into(),
-                flags: BigEndian::read_u64(&slice[0x08..0x10]),
+                flags: Flags::from_bits_truncate(BigEndian::read_u32(&slice[0x08..0x0c])),
                 address: BigEndian::read_u64(&slice[0x10..0x18]),
                 offset: BigEndian::read_u64(&slice[0x18..0x20]),
                 size: BigEndian::read_u64(&slice[0x20..0x28]),
