@@ -68,11 +68,20 @@ impl<'a> fmt::Debug for ProgramHeader {
             .field("type", &self.type_)
             .field("flags", &self.flags)
             .field("file_offset", &format_args!("0x{:016x}", self.file_offset))
-            .field("virtual_address", &format_args!("0x{:016x}", self.virtual_address))
-            .field("physical_address", &format_args!("0x{:016x}", self.physical_address))
+            .field(
+                "virtual_address",
+                &format_args!("0x{:016x}", self.virtual_address),
+            )
+            .field(
+                "physical_address",
+                &format_args!("0x{:016x}", self.physical_address),
+            )
             .field("file_size", &format_args!("0x{:016x}", self.file_size))
             .field("memory_size", &format_args!("0x{:016x}", self.memory_size))
-            .field("address_alignment", &format_args!("0x{:016x}", self.address_alignment))
+            .field(
+                "address_alignment",
+                &format_args!("0x{:016x}", self.address_alignment),
+            )
             .finish()
     }
 }
@@ -168,7 +177,9 @@ impl ProgramHeader {
             &ProgramType::Interpreter => unimplemented!(),
             &ProgramType::Note => Some(ProgramData::Note(NoteTable::new(slice, encoding))),
             &ProgramType::Shlib => None,
-            &ProgramType::ProgramHeaderTable => Some(ProgramData::ProgramHeaderTable(Table::new(slice, encoding))),
+            &ProgramType::ProgramHeaderTable => {
+                Some(ProgramData::ProgramHeaderTable(Table::new(slice, encoding)))
+            },
             &ProgramType::OsSpecific(code) => Some(ProgramData::OsSpecific {
                 code: code,
                 data: slice,
@@ -186,13 +197,11 @@ impl ProgramHeader {
             }),
         };
 
-        Ok(data.map(|d| {
-            Program {
-                data: d,
-                flags: self.flags.clone(),
-                memory_size: self.memory_size.clone(),
-                address_alignment: self.address_alignment.clone(),
-            }
+        Ok(data.map(|d| Program {
+            data: d,
+            flags: self.flags.clone(),
+            memory_size: self.memory_size.clone(),
+            address_alignment: self.address_alignment.clone(),
         }))
     }
 }

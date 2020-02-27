@@ -1,9 +1,6 @@
 use super::{Error, Address, Offset, Index, SectionHeader, ProgramHeader, Entry, Table};
 
-use core::{
-    convert::TryFrom,
-    fmt,
-};
+use core::{convert::TryFrom, fmt};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum Class {

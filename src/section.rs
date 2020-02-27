@@ -1,7 +1,6 @@
 use super::{
-    Address, Offset, Error, Flags,
-    Encoding, Entry, Table,
-    SymbolEntry, StringTable, RelEntry, RelaEntry,
+    Address, Offset, Error, Flags, Encoding, Entry, Table, SymbolEntry, StringTable, RelEntry,
+    RelaEntry,
 };
 
 use core::fmt;
@@ -130,7 +129,10 @@ impl<'a> fmt::Debug for SectionHeader {
             .field("size", &format_args!("0x{:016x}", self.size))
             .field("link", &self.link)
             .field("info", &self.info)
-            .field("address_alignment", &format_args!("0x{:016x}", self.address_alignment))
+            .field(
+                "address_alignment",
+                &format_args!("0x{:016x}", self.address_alignment),
+            )
             .field("number_of_entries", &self.number_of_entries)
             .finish()
     }
@@ -186,18 +188,9 @@ pub enum SectionData<'a> {
     StringTable(StringTable<'a>),
     Rel(Table<'a, RelEntry>),
     Rela(Table<'a, RelaEntry>),
-    OsSpecific {
-        code: u32,
-        data: &'a [u8],
-    },
-    ProcessorSprcific {
-        code: u32,
-        data: &'a [u8],
-    },
-    Unknown {
-        code: u32,
-        data: &'a [u8],
-    },
+    OsSpecific { code: u32, data: &'a [u8] },
+    ProcessorSprcific { code: u32, data: &'a [u8] },
+    Unknown { code: u32, data: &'a [u8] },
 }
 
 #[derive(Clone)]
