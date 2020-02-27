@@ -1,4 +1,8 @@
-use super::{Address, Offset, Error, Flags, Encoding, Entry};
+use super::{
+    Address, Offset, Error, Flags,
+    Encoding, Entry, Table,
+    SymbolEntry, StringTable, RelEntry, RelaEntry,
+};
 
 use core::fmt;
 
@@ -171,5 +175,72 @@ impl Entry for SectionHeader {
                 number_of_entries: BigEndian::read_u64(&slice[0x38..0x40]),
             }),
         }
+    }
+}
+
+#[derive(Clone)]
+pub enum SectionData<'a> {
+    Null,
+    ProgramBits(&'a [u8]),
+    SymbolTable(Table<'a, SymbolEntry>),
+    StringTable(StringTable<'a>),
+    Rel(Table<'a, RelEntry>),
+    Rela(Table<'a, RelaEntry>),
+    OsSpecific {
+        code: u32,
+        data: &'a [u8],
+    },
+    ProcessorSprcific {
+        code: u32,
+        data: &'a [u8],
+    },
+    Unknown {
+        code: u32,
+        data: &'a [u8],
+    },
+}
+
+#[derive(Clone)]
+pub struct Section<'a> {
+    pub data: SectionData<'a>,
+    pub name: u32,
+    pub flags: Flags,
+    pub address: Address,
+    pub address_alignment: u64,
+    pub link: SectionType,
+    pub info: SectionType,
+}
+
+impl SectionHeader {
+    pub fn get_data<'a>(
+        &self,
+        raw: &'a [u8],
+        encoding: Encoding,
+    ) -> Result<Option<Section<'a>>, Error> {
+        let start = self.offset.clone() as usize;
+        let end = start + (self.size.clone() as usize);
+        let slice = &raw[start..end];
+
+        let data = match &self.type_ {
+            &SectionType::Null => None,
+            &SectionType::ProgramBits => Some(SectionData::ProgramBits(slice)),
+            &SectionType::SymbolTable => {
+                Some(SectionData::SymbolTable(Table::new(slice, encoding)))
+            },
+            &SectionType::StringTable => Some(SectionData::StringTable(StringTable::new(slice))),
+            &SectionType::Rel => Some(SectionData::Rel(Table::new(slice, encoding))),
+            &SectionType::Rela => Some(SectionData::Rela(Table::new(slice, encoding))),
+            _ => unimplemented!(),
+        };
+
+        Ok(data.map(|d| Section {
+            data: d,
+            name: self.name.clone(),
+            flags: self.flags.clone(),
+            address: self.address.clone(),
+            address_alignment: self.address_alignment.clone(),
+            link: self.link.clone(),
+            info: self.info.clone(),
+        }))
     }
 }

@@ -12,7 +12,7 @@ mod header;
 pub use self::header::{Class, Encoding, Abi, Type, Machine, Header};
 
 mod section;
-pub use self::section::{Index, SectionType, SectionHeader};
+pub use self::section::{Index, SectionType, SectionHeader, SectionData, Section};
 
 mod program;
 pub use self::program::{ProgramType, ProgramHeader, ProgramData, Program};
