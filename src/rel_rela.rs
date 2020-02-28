@@ -15,10 +15,6 @@ impl Entry for RelEntry {
     fn new(slice: &[u8], encoding: Encoding) -> Result<Self, Self::Error> {
         use byteorder::{ByteOrder, LittleEndian, BigEndian};
 
-        if slice.len() < Self::SIZE {
-            return Err(Error::NotEnoughData);
-        };
-
         match encoding {
             Encoding::Little => {
                 let temp = LittleEndian::read_u64(&slice[0x08..0x10]);
@@ -55,10 +51,6 @@ impl Entry for RelaEntry {
 
     fn new(slice: &[u8], encoding: Encoding) -> Result<Self, Self::Error> {
         use byteorder::{ByteOrder, LittleEndian, BigEndian};
-
-        if slice.len() < Self::SIZE {
-            return Err(Error::NotEnoughData);
-        };
 
         match encoding {
             Encoding::Little => {

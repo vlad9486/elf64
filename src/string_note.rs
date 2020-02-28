@@ -1,4 +1,4 @@
-use super::{Error, Encoding};
+use super::{Error, ErrorSliceLength, Encoding};
 
 #[derive(Clone)]
 pub struct StringTable<'a> {
@@ -16,8 +16,8 @@ impl<'a> StringTable<'a> {
         const MAX_LENGTH: usize = 0xff;
         let mut length = 0;
         loop {
-            if index + length >= self.slice.len() {
-                return Err(Error::NotEnoughData);
+            if index + length > self.slice.len() {
+                return Err(Error::slice_too_short());
             }
             if self.slice[index + length] == 0 || length == MAX_LENGTH {
                 break;
@@ -56,7 +56,7 @@ impl<'a> NoteTable<'a> {
         use byteorder::{ByteOrder, LittleEndian, BigEndian};
 
         if self.slice.len() < position.clone() + 0x18 {
-            return Err(Error::NotEnoughData);
+            return Err(Error::slice_too_short());
         };
 
         let align8 = |x: usize| if x % 8 == 0 { x } else { x + 8 - x % 8 };
@@ -79,7 +79,7 @@ impl<'a> NoteTable<'a> {
 
         let new_position = position.clone() + 0x18 + name_size_aligned + description_size;
         if self.slice.len() < new_position {
-            return Err(Error::NotEnoughData);
+            return Err(Error::slice_too_short());
         };
 
         let str_start = position.clone() + 0x18;

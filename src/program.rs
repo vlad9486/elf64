@@ -1,4 +1,4 @@
-use super::{Address, Offset, Error, Flags, Encoding, Entry};
+use super::{Address, Offset, Error, Encoding, Entry};
 
 use core::fmt;
 
@@ -50,10 +50,18 @@ impl From<ProgramType> for u32 {
     }
 }
 
+bitflags! {
+    pub struct ProgramFlags: u32 {
+        const EXECUTE = 0b00000001;
+        const WRITE = 0b00000010;
+        const READ = 0b00000100;
+    }
+}
+
 #[derive(Clone, Eq, PartialEq)]
 pub struct ProgramHeader {
     pub type_: ProgramType,
-    pub flags: Flags,
+    pub flags: ProgramFlags,
     pub file_offset: Offset,
     pub virtual_address: Address,
     pub physical_address: Address,
@@ -94,14 +102,12 @@ impl Entry for ProgramHeader {
     fn new(slice: &[u8], encoding: Encoding) -> Result<Self, Self::Error> {
         use byteorder::{ByteOrder, LittleEndian, BigEndian};
 
-        if slice.len() < Self::SIZE {
-            return Err(Error::NotEnoughData);
-        };
+        let flags = ProgramFlags::from_bits_truncate;
 
         match encoding {
             Encoding::Little => Ok(ProgramHeader {
                 type_: LittleEndian::read_u32(&slice[0x00..0x04]).into(),
-                flags: Flags::from_bits_truncate(LittleEndian::read_u32(&slice[0x04..0x08])),
+                flags: flags(LittleEndian::read_u32(&slice[0x04..0x08])),
                 file_offset: LittleEndian::read_u64(&slice[0x08..0x10]),
                 virtual_address: LittleEndian::read_u64(&slice[0x10..0x18]),
                 physical_address: LittleEndian::read_u64(&slice[0x18..0x20]),
@@ -111,7 +117,7 @@ impl Entry for ProgramHeader {
             }),
             Encoding::Big => Ok(ProgramHeader {
                 type_: BigEndian::read_u32(&slice[0x00..0x04]).into(),
-                flags: Flags::from_bits_truncate(BigEndian::read_u32(&slice[0x04..0x08])),
+                flags: flags(BigEndian::read_u32(&slice[0x04..0x08])),
                 file_offset: BigEndian::read_u64(&slice[0x08..0x10]),
                 virtual_address: BigEndian::read_u64(&slice[0x10..0x18]),
                 physical_address: BigEndian::read_u64(&slice[0x18..0x20]),

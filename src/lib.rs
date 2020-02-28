@@ -6,7 +6,7 @@
 extern crate bitflags;
 
 mod common;
-pub use self::common::{Address, Offset, Error, Flags};
+pub use self::common::{Address, Offset, Error, UnexpectedSize, ErrorSliceLength};
 
 mod header;
 use self::header::Header;
@@ -14,10 +14,11 @@ pub use self::header::{Class, Encoding, Abi, Type, Machine};
 
 mod section;
 use self::section::SectionHeader;
-pub use self::section::{Index, SectionType};
+pub use self::section::{Index, SectionType, SectionFlags};
 
 mod program;
 use self::program::{ProgramType, ProgramHeader};
+pub use self::program::ProgramFlags;
 
 mod symbol;
 pub use self::symbol::{SymbolBinding, SymbolType, SymbolInfo, SymbolEntry};
@@ -42,10 +43,14 @@ pub struct Elf64<'a> {
 
 impl<'a> Elf64<'a> {
     pub fn new(raw: &'a [u8]) -> Result<Self, Error> {
-        let header = Header::new(&raw[0..Header::SIZE])?;
-        let program_table = header.program_header_table(raw);
+        if raw.len() < Header::SIZE {
+            return Err(Error::slice_too_short());
+        };
 
-        let section_table = header.section_header_table(raw);
+        let header = Header::new(&raw[0..Header::SIZE])?;
+        let program_table = header.program_header_table(raw)?;
+
+        let section_table = header.section_header_table(raw)?;
         let names = match &header.section_names {
             &Index::Regular(i) => {
                 let names_section = section_table.pick(i as usize)?;
@@ -122,6 +127,9 @@ impl<'a> Elf64<'a> {
 
         let start = program_header.file_offset.clone() as usize;
         let end = start + (program_header.file_size.clone() as usize);
+        if self.raw.len() < end {
+            return Err(Error::slice_too_short());
+        };
         let slice = &self.raw[start..end];
 
         let data = match &program_header.type_ {
@@ -173,6 +181,9 @@ impl<'a> Elf64<'a> {
 
         let start = section_header.offset.clone() as usize;
         let end = start + (section_header.size.clone() as usize);
+        if self.raw.len() < end {
+            return Err(Error::slice_too_short());
+        };
         let slice = &self.raw[start..end];
 
         let data = match &section_header.type_ {
@@ -259,7 +270,7 @@ pub enum ProgramData<'a> {
 #[derive(Clone)]
 pub struct Program<'a> {
     pub data: ProgramData<'a>,
-    pub flags: Flags,
+    pub flags: ProgramFlags,
     pub memory_size: u64,
     pub address_alignment: u64,
 }
@@ -304,7 +315,7 @@ pub enum SectionData<'a> {
 pub struct Section<'a> {
     pub data: SectionData<'a>,
     pub name: &'a str,
-    pub flags: Flags,
+    pub flags: SectionFlags,
     pub address: Address,
     pub address_alignment: u64,
     pub link: Index,

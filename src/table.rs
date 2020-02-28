@@ -1,12 +1,12 @@
 use core::marker::PhantomData;
 
-use super::Encoding;
+use super::{ErrorSliceLength, Encoding};
 
 pub trait Entry
 where
     Self: Sized,
 {
-    type Error;
+    type Error: ErrorSliceLength;
 
     const SIZE: usize;
 
@@ -41,6 +41,12 @@ where
 
     pub fn pick(&self, index: usize) -> Result<E, E::Error> {
         let start = index * E::SIZE;
-        E::new(&self.slice[start..(start + E::SIZE)], self.encoding.clone())
+        let end = start + E::SIZE;
+
+        if self.slice.len() < end {
+            return Err(E::Error::slice_too_short());
+        };
+
+        E::new(&self.slice[start..end], self.encoding.clone())
     }
 }

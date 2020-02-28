@@ -99,19 +99,11 @@ impl Entry for SymbolEntry {
     fn new(slice: &[u8], encoding: Encoding) -> Result<Self, Self::Error> {
         use byteorder::{ByteOrder, LittleEndian, BigEndian};
 
-        if slice.len() < Self::SIZE {
-            return Err(Error::NotEnoughData);
-        };
-
-        if slice[0x05] != 0x00 {
-            return Err(Error::ReservedFieldIsNotZero);
-        };
-
         match encoding {
             Encoding::Little => Ok(SymbolEntry {
                 name: LittleEndian::read_u32(&slice[0x00..0x04]),
                 info: slice[0x04].into(),
-                reserved: 0,
+                reserved: slice[0x05],
                 section_index: LittleEndian::read_u16(&slice[0x06..0x08]).into(),
                 value: LittleEndian::read_u64(&slice[0x08..0x10]),
                 size: LittleEndian::read_u64(&slice[0x10..0x18]),
@@ -119,7 +111,7 @@ impl Entry for SymbolEntry {
             Encoding::Big => Ok(SymbolEntry {
                 name: BigEndian::read_u32(&slice[0x00..0x04]),
                 info: slice[0x04].into(),
-                reserved: 0,
+                reserved: slice[0x05],
                 section_index: BigEndian::read_u16(&slice[0x06..0x08]).into(),
                 value: BigEndian::read_u64(&slice[0x08..0x10]),
                 size: BigEndian::read_u64(&slice[0x10..0x18]),

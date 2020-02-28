@@ -1,4 +1,7 @@
-use super::{Error, Address, Offset, Index, SectionHeader, ProgramHeader, Entry, Table};
+use super::{
+    Error, UnexpectedSize, ErrorSliceLength, Address, Offset, Index, SectionHeader, ProgramHeader,
+    Entry, Table,
+};
 
 use core::{convert::TryFrom, fmt};
 
@@ -123,9 +126,6 @@ impl Identifier {
     pub fn new(slice: &[u8]) -> Result<Self, Error> {
         use core::convert::TryInto;
 
-        if slice.len() < 0x10 {
-            return Err(Error::NotEnoughData);
-        };
         if !(slice[0x00] == 0x7f && slice[0x01..0x04].eq(b"ELF")) {
             return Err(Error::WrongMagicNumber);
         };
@@ -273,21 +273,17 @@ impl Header {
     pub fn new(slice: &[u8]) -> Result<Self, Error> {
         use byteorder::{ByteOrder, LittleEndian, BigEndian};
 
-        if slice.len() < 0x40 {
-            return Err(Error::NotEnoughData);
-        };
-
         let identifier = Identifier::new(&slice[0x00..0x10])?;
         match identifier.encoding {
             Encoding::Little => {
                 if LittleEndian::read_u16(&slice[0x34..0x36]) as usize != Self::SIZE {
-                    return Err(Error::UnexpectedHeaderSize);
+                    return Err(Error::UnexpectedSize(UnexpectedSize::Header));
                 };
                 if LittleEndian::read_u16(&slice[0x36..0x38]) as usize != ProgramHeader::SIZE {
-                    return Err(Error::UnexpectedProgramHeaderSize);
+                    return Err(Error::UnexpectedSize(UnexpectedSize::ProgramHeader));
                 };
                 if LittleEndian::read_u16(&slice[0x3a..0x3c]) as usize != SectionHeader::SIZE {
-                    return Err(Error::UnexpectedSectionHeaderSize);
+                    return Err(Error::UnexpectedSize(UnexpectedSize::SectionHeader));
                 };
                 Ok(Header {
                     identifier: identifier,
@@ -305,13 +301,13 @@ impl Header {
             },
             Encoding::Big => {
                 if BigEndian::read_u16(&slice[0x34..0x36]) as usize != Self::SIZE {
-                    return Err(Error::UnexpectedHeaderSize);
+                    return Err(Error::UnexpectedSize(UnexpectedSize::Header));
                 };
                 if BigEndian::read_u16(&slice[0x36..0x38]) as usize != ProgramHeader::SIZE {
-                    return Err(Error::UnexpectedProgramHeaderSize);
+                    return Err(Error::UnexpectedSize(UnexpectedSize::ProgramHeader));
                 };
                 if BigEndian::read_u16(&slice[0x3a..0x3c]) as usize != SectionHeader::SIZE {
-                    return Err(Error::UnexpectedSectionHeaderSize);
+                    return Err(Error::UnexpectedSize(UnexpectedSize::SectionHeader));
                 };
                 Ok(Header {
                     identifier: identifier,
@@ -330,15 +326,33 @@ impl Header {
         }
     }
 
-    pub fn program_header_table<'a>(&self, raw: &'a [u8]) -> Table<'a, ProgramHeader> {
+    pub fn program_header_table<'a>(
+        &self,
+        raw: &'a [u8],
+    ) -> Result<Table<'a, ProgramHeader>, Error> {
         let start = self.program_headers_offset as usize;
         let end = start + (self.program_header_number as usize) * ProgramHeader::SIZE;
-        Table::new(&raw[start..end], self.identifier.encoding.clone())
+        if raw.len() < end {
+            return Err(Error::slice_too_short());
+        };
+        Ok(Table::new(
+            &raw[start..end],
+            self.identifier.encoding.clone(),
+        ))
     }
 
-    pub fn section_header_table<'a>(&self, raw: &'a [u8]) -> Table<'a, SectionHeader> {
+    pub fn section_header_table<'a>(
+        &self,
+        raw: &'a [u8],
+    ) -> Result<Table<'a, SectionHeader>, Error> {
         let start = self.section_headers_offset as usize;
         let end = start + (self.section_header_number as usize) * SectionHeader::SIZE;
-        Table::new(&raw[start..end], self.identifier.encoding.clone())
+        if raw.len() < end {
+            return Err(Error::slice_too_short());
+        };
+        Ok(Table::new(
+            &raw[start..end],
+            self.identifier.encoding.clone(),
+        ))
     }
 }

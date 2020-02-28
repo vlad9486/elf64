@@ -5,20 +5,26 @@ pub type Offset = u64;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum Error {
-    NotEnoughData,
+    SliceTooShort,
     WrongMagicNumber,
     UnknownEncoding(u8),
-    ReservedFieldIsNotZero,
     Utf8Error(Utf8Error),
-    UnexpectedHeaderSize,
-    UnexpectedProgramHeaderSize,
-    UnexpectedSectionHeaderSize,
+    UnexpectedSize(UnexpectedSize),
 }
 
-bitflags! {
-    pub struct Flags: u32 {
-        const WRITE = 0b00000001;
-        const ALLOC = 0b00000010;
-        const EXECINSTR = 0b00000100;
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum UnexpectedSize {
+    Header,
+    ProgramHeader,
+    SectionHeader,
+}
+
+pub trait ErrorSliceLength {
+    fn slice_too_short() -> Self;
+}
+
+impl ErrorSliceLength for Error {
+    fn slice_too_short() -> Self {
+        Error::SliceTooShort
     }
 }

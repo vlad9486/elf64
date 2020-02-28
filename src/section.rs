@@ -1,4 +1,4 @@
-use super::{Address, Offset, Error, Flags, Encoding, Entry};
+use super::{Address, Offset, Error, Encoding, Entry};
 
 use core::fmt;
 
@@ -101,11 +101,19 @@ impl From<SectionType> for u32 {
     }
 }
 
+bitflags! {
+    pub struct SectionFlags: u32 {
+        const WRITE = 0b00000001;
+        const ALLOC = 0b00000010;
+        const EXECINSTR = 0b00000100;
+    }
+}
+
 #[derive(Clone, Eq, PartialEq)]
 pub struct SectionHeader {
     pub name: u32,
     pub type_: SectionType,
-    pub flags: Flags,
+    pub flags: SectionFlags,
     pub address: Address,
     pub offset: Offset,
     pub size: u64,
@@ -143,9 +151,7 @@ impl Entry for SectionHeader {
     fn new(slice: &[u8], encoding: Encoding) -> Result<Self, Self::Error> {
         use byteorder::{ByteOrder, LittleEndian, BigEndian};
 
-        if slice.len() < Self::SIZE {
-            return Err(Error::NotEnoughData);
-        };
+        let flags = SectionFlags::from_bits_truncate;
 
         // WARNING:
         //  slice[0x0c..0x10]
@@ -155,7 +161,7 @@ impl Entry for SectionHeader {
             Encoding::Little => Ok(SectionHeader {
                 name: LittleEndian::read_u32(&slice[0x00..0x04]),
                 type_: LittleEndian::read_u32(&slice[0x04..0x08]).into(),
-                flags: Flags::from_bits_truncate(LittleEndian::read_u32(&slice[0x08..0x0c])),
+                flags: flags(LittleEndian::read_u32(&slice[0x08..0x0c])),
                 address: LittleEndian::read_u64(&slice[0x10..0x18]),
                 offset: LittleEndian::read_u64(&slice[0x18..0x20]),
                 size: LittleEndian::read_u64(&slice[0x20..0x28]),
@@ -167,7 +173,7 @@ impl Entry for SectionHeader {
             Encoding::Big => Ok(SectionHeader {
                 name: BigEndian::read_u32(&slice[0x00..0x04]),
                 type_: BigEndian::read_u32(&slice[0x04..0x08]).into(),
-                flags: Flags::from_bits_truncate(BigEndian::read_u32(&slice[0x08..0x0c])),
+                flags: flags(BigEndian::read_u32(&slice[0x08..0x0c])),
                 address: BigEndian::read_u64(&slice[0x10..0x18]),
                 offset: BigEndian::read_u64(&slice[0x18..0x20]),
                 size: BigEndian::read_u64(&slice[0x20..0x28]),
