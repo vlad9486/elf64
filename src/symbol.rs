@@ -83,12 +83,12 @@ impl From<SymbolInfo> for u8 {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct SymbolEntry {
-    name: u32,
-    info: SymbolInfo,
-    reserved: u8,
-    section_index: Index,
-    value: Address,
-    size: u64,
+    pub name: u32,
+    pub info: SymbolInfo,
+    pub reserved: u8,
+    pub section_index: Index,
+    pub value: Address,
+    pub size: u64,
 }
 
 impl Entry for SymbolEntry {

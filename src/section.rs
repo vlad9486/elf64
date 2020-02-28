@@ -1,7 +1,4 @@
-use super::{
-    Address, Offset, Error, Flags, Encoding, Entry, Table, SymbolEntry, StringTable, RelEntry,
-    RelaEntry,
-};
+use super::{Address, Offset, Error, Flags, Encoding, Entry};
 
 use core::fmt;
 
@@ -106,16 +103,16 @@ impl From<SectionType> for u32 {
 
 #[derive(Clone, Eq, PartialEq)]
 pub struct SectionHeader {
-    name: u32,
-    type_: SectionType,
-    flags: Flags,
-    address: Address,
-    offset: Offset,
-    size: u64,
-    link: SectionType,
-    info: SectionType,
-    address_alignment: u64,
-    number_of_entries: u64,
+    pub name: u32,
+    pub type_: SectionType,
+    pub flags: Flags,
+    pub address: Address,
+    pub offset: Offset,
+    pub size: u64,
+    pub link: Index,
+    pub info: u32,
+    pub address_alignment: u64,
+    pub number_of_entries: u64,
 }
 
 impl<'a> fmt::Debug for SectionHeader {
@@ -150,7 +147,10 @@ impl Entry for SectionHeader {
             return Err(Error::NotEnoughData);
         };
 
-        // WARNING: slice[0x0c..0x10] ignored
+        // WARNING:
+        //  slice[0x0c..0x10]
+        //  slice[0x2a..0x2c]
+        // ignored
         match encoding {
             Encoding::Little => Ok(SectionHeader {
                 name: LittleEndian::read_u32(&slice[0x00..0x04]),
@@ -159,7 +159,7 @@ impl Entry for SectionHeader {
                 address: LittleEndian::read_u64(&slice[0x10..0x18]),
                 offset: LittleEndian::read_u64(&slice[0x18..0x20]),
                 size: LittleEndian::read_u64(&slice[0x20..0x28]),
-                link: LittleEndian::read_u32(&slice[0x28..0x2c]).into(),
+                link: LittleEndian::read_u16(&slice[0x28..0x2a]).into(),
                 info: LittleEndian::read_u32(&slice[0x2c..0x30]).into(),
                 address_alignment: LittleEndian::read_u64(&slice[0x30..0x38]),
                 number_of_entries: LittleEndian::read_u64(&slice[0x38..0x40]),
@@ -171,69 +171,11 @@ impl Entry for SectionHeader {
                 address: BigEndian::read_u64(&slice[0x10..0x18]),
                 offset: BigEndian::read_u64(&slice[0x18..0x20]),
                 size: BigEndian::read_u64(&slice[0x20..0x28]),
-                link: BigEndian::read_u32(&slice[0x28..0x2c]).into(),
+                link: BigEndian::read_u16(&slice[0x28..0x2a]).into(),
                 info: BigEndian::read_u32(&slice[0x2c..0x30]).into(),
                 address_alignment: BigEndian::read_u64(&slice[0x30..0x38]),
                 number_of_entries: BigEndian::read_u64(&slice[0x38..0x40]),
             }),
         }
-    }
-}
-
-#[derive(Clone)]
-pub enum SectionData<'a> {
-    Null,
-    ProgramBits(&'a [u8]),
-    SymbolTable(Table<'a, SymbolEntry>),
-    StringTable(StringTable<'a>),
-    Rel(Table<'a, RelEntry>),
-    Rela(Table<'a, RelaEntry>),
-    OsSpecific { code: u32, data: &'a [u8] },
-    ProcessorSprcific { code: u32, data: &'a [u8] },
-    Unknown { code: u32, data: &'a [u8] },
-}
-
-#[derive(Clone)]
-pub struct Section<'a> {
-    pub data: SectionData<'a>,
-    pub name: u32,
-    pub flags: Flags,
-    pub address: Address,
-    pub address_alignment: u64,
-    pub link: SectionType,
-    pub info: SectionType,
-}
-
-impl SectionHeader {
-    pub fn get_data<'a>(
-        &self,
-        raw: &'a [u8],
-        encoding: Encoding,
-    ) -> Result<Option<Section<'a>>, Error> {
-        let start = self.offset.clone() as usize;
-        let end = start + (self.size.clone() as usize);
-        let slice = &raw[start..end];
-
-        let data = match &self.type_ {
-            &SectionType::Null => None,
-            &SectionType::ProgramBits => Some(SectionData::ProgramBits(slice)),
-            &SectionType::SymbolTable => {
-                Some(SectionData::SymbolTable(Table::new(slice, encoding)))
-            },
-            &SectionType::StringTable => Some(SectionData::StringTable(StringTable::new(slice))),
-            &SectionType::Rel => Some(SectionData::Rel(Table::new(slice, encoding))),
-            &SectionType::Rela => Some(SectionData::Rela(Table::new(slice, encoding))),
-            _ => unimplemented!(),
-        };
-
-        Ok(data.map(|d| Section {
-            data: d,
-            name: self.name.clone(),
-            flags: self.flags.clone(),
-            address: self.address.clone(),
-            address_alignment: self.address_alignment.clone(),
-            link: self.link.clone(),
-            info: self.info.clone(),
-        }))
     }
 }

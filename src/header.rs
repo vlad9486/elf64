@@ -111,12 +111,12 @@ impl From<Abi> for u8 {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-struct Identifier {
-    class: Class,
-    encoding: Encoding,
-    version: u8,
-    abi: Abi,
-    abi_version: u8,
+pub struct Identifier {
+    pub class: Class,
+    pub encoding: Encoding,
+    pub version: u8,
+    pub abi: Abi,
+    pub abi_version: u8,
 }
 
 impl Identifier {
@@ -235,50 +235,48 @@ impl From<Machine> for u16 {
 }
 
 #[derive(Clone, Eq, PartialEq)]
-pub struct Header<'a> {
-    raw: &'a [u8],
-    identifier: Identifier,
-    type_: Type,
-    machine: Machine,
-    version: u32,
-    entry: Address,
-    program_headers_offset: Offset,
-    section_headers_offset: Offset,
-    flags: u32,
-    program_header_number: u16,
-    section_header_number: u16,
-    section_names: Index,
+pub struct Header {
+    pub identifier: Identifier,
+    pub type_: Type,
+    pub machine: Machine,
+    pub format_version: u32,
+    pub entry: Address,
+    pub program_headers_offset: Offset,
+    pub section_headers_offset: Offset,
+    pub flags: u32,
+    pub program_header_number: u16,
+    pub section_header_number: u16,
+    pub section_names: Index,
 }
 
-impl<'a> fmt::Debug for Header<'a> {
+impl<'a> fmt::Debug for Header {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("Header")
-            .field("class", &self.class())
-            .field("encoding", &self.encoding())
-            .field("version", &self.version())
-            .field("abi", &self.abi())
-            .field("abi_version", &self.abi_version())
-            .field("type", &self.type_())
-            .field("machine", &self.machine())
-            .field("format_version", &self.format_version())
-            .field("entry", &format_args!("0x{:016x}", self.entry()))
-            .field("flags", &self.flags())
-            .field("section_names", &self.section_names())
+            .field("class", &self.identifier.class)
+            .field("encoding", &self.identifier.encoding)
+            .field("version", &self.identifier.version)
+            .field("abi", &self.identifier.abi)
+            .field("abi_version", &self.identifier.abi_version)
+            .field("type", &self.type_)
+            .field("machine", &self.machine)
+            .field("format_version", &self.format_version)
+            .field("entry", &format_args!("0x{:08x}", self.entry))
+            .field("flags", &self.flags)
+            .field("section_names", &self.section_names)
             .finish()
     }
 }
 
-impl<'a> Header<'a> {
+impl Header {
     pub const SIZE: usize = 0x40;
 
-    pub fn new(raw: &'a [u8]) -> Result<Self, Error> {
+    pub fn new(slice: &[u8]) -> Result<Self, Error> {
         use byteorder::{ByteOrder, LittleEndian, BigEndian};
 
-        if raw.len() < 0x40 {
+        if slice.len() < 0x40 {
             return Err(Error::NotEnoughData);
         };
 
-        let slice = &raw[0x00..0x40];
         let identifier = Identifier::new(&slice[0x00..0x10])?;
         match identifier.encoding {
             Encoding::Little => {
@@ -292,11 +290,10 @@ impl<'a> Header<'a> {
                     return Err(Error::UnexpectedSectionHeaderSize);
                 };
                 Ok(Header {
-                    raw: raw,
                     identifier: identifier,
                     type_: LittleEndian::read_u16(&slice[0x10..0x12]).into(),
                     machine: LittleEndian::read_u16(&slice[0x12..0x14]).into(),
-                    version: LittleEndian::read_u32(&slice[0x14..0x18]),
+                    format_version: LittleEndian::read_u32(&slice[0x14..0x18]),
                     entry: LittleEndian::read_u64(&slice[0x18..0x20]),
                     program_headers_offset: LittleEndian::read_u64(&slice[0x20..0x28]),
                     section_headers_offset: LittleEndian::read_u64(&slice[0x28..0x30]),
@@ -317,11 +314,10 @@ impl<'a> Header<'a> {
                     return Err(Error::UnexpectedSectionHeaderSize);
                 };
                 Ok(Header {
-                    raw: raw,
                     identifier: identifier,
                     type_: BigEndian::read_u16(&slice[0x10..0x12]).into(),
                     machine: BigEndian::read_u16(&slice[0x12..0x14]).into(),
-                    version: BigEndian::read_u32(&slice[0x14..0x18]),
+                    format_version: BigEndian::read_u32(&slice[0x14..0x18]),
                     entry: BigEndian::read_u64(&slice[0x18..0x20]),
                     program_headers_offset: BigEndian::read_u64(&slice[0x20..0x28]),
                     section_headers_offset: BigEndian::read_u64(&slice[0x28..0x30]),
@@ -334,59 +330,15 @@ impl<'a> Header<'a> {
         }
     }
 
-    pub fn class(&self) -> Class {
-        self.identifier.class.clone()
-    }
-
-    pub fn encoding(&self) -> Encoding {
-        self.identifier.encoding.clone()
-    }
-
-    pub fn version(&self) -> u8 {
-        self.identifier.version.clone()
-    }
-
-    pub fn abi(&self) -> Abi {
-        self.identifier.abi.clone()
-    }
-
-    pub fn abi_version(&self) -> u8 {
-        self.identifier.abi_version.clone()
-    }
-
-    pub fn type_(&self) -> Type {
-        self.type_.clone()
-    }
-
-    pub fn machine(&self) -> Machine {
-        self.machine.clone()
-    }
-
-    pub fn format_version(&self) -> u32 {
-        self.version.clone()
-    }
-
-    pub fn entry(&self) -> Address {
-        self.entry.clone()
-    }
-
-    pub fn flags(&self) -> u32 {
-        self.flags.clone()
-    }
-
-    pub fn section_names(&self) -> Index {
-        self.section_names.clone()
-    }
-
-    pub fn program_header_table(&self) -> Table<'a, ProgramHeader> {
+    pub fn program_header_table<'a>(&self, raw: &'a [u8]) -> Table<'a, ProgramHeader> {
         let start = self.program_headers_offset as usize;
         let end = start + (self.program_header_number as usize) * ProgramHeader::SIZE;
-        Table::new(&self.raw[start..end], self.encoding())
+        Table::new(&raw[start..end], self.identifier.encoding.clone())
     }
 
-    pub fn section_header_table(&self) -> Table<'a, SectionHeader> {
+    pub fn section_header_table<'a>(&self, raw: &'a [u8]) -> Table<'a, SectionHeader> {
         let start = self.section_headers_offset as usize;
         let end = start + (self.section_header_number as usize) * SectionHeader::SIZE;
-        Table::new(&self.raw[start..end], self.encoding())
+        Table::new(&raw[start..end], self.identifier.encoding.clone())
     }
 }

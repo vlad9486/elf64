@@ -42,10 +42,10 @@ impl Entry for RelEntry {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct RelaEntry {
-    address: Address,
-    symbol_index: u32,
-    relocation_type: u32,
-    addend: i64,
+    pub address: Address,
+    pub symbol_index: u32,
+    pub relocation_type: u32,
+    pub addend: i64,
 }
 
 impl Entry for RelaEntry {
