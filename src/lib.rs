@@ -1,6 +1,5 @@
 #![no_std]
 #![forbid(unsafe_code)]
-#![allow(non_shorthand_field_patterns)]
 
 #[macro_use]
 extern crate bitflags;
@@ -62,13 +61,13 @@ impl<'a> Elf64<'a> {
         let program_table = header.program_header_table(raw)?;
 
         let section_table = header.section_header_table(raw)?;
-        let names = match &header.section_names {
-            &Index::Regular(i) => {
+        let names = match header.section_names {
+            Index::Regular(i) => {
                 let names_section = section_table.pick(i as usize)?;
-                match &names_section.type_ {
-                    &SectionType::StringTable => {
-                        let start = names_section.offset.clone() as usize;
-                        let end = start + names_section.size.clone() as usize;
+                match names_section.ty {
+                    SectionType::StringTable => {
+                        let start = names_section.offset as usize;
+                        let end = start + names_section.size as usize;
                         Some(StringTable::new(&raw[start..end]))
                     },
                     _ => None,
@@ -78,11 +77,11 @@ impl<'a> Elf64<'a> {
         };
 
         Ok(Elf64 {
-            raw: raw,
-            header: header,
-            program_table: program_table,
-            section_table: section_table,
-            names: names,
+            raw,
+            header,
+            program_table,
+            section_table,
+            names,
         })
     }
 
@@ -95,7 +94,7 @@ impl<'a> Elf64<'a> {
     }
 
     pub fn version(&self) -> u8 {
-        self.header.identifier.version.clone()
+        self.header.identifier.version
     }
 
     pub fn abi(&self) -> Abi {
@@ -103,11 +102,11 @@ impl<'a> Elf64<'a> {
     }
 
     pub fn abi_version(&self) -> u8 {
-        self.header.identifier.abi_version.clone()
+        self.header.identifier.abi_version
     }
 
-    pub fn type_(&self) -> Type {
-        self.header.type_.clone()
+    pub fn ty(&self) -> Type {
+        self.header.ty.clone()
     }
 
     pub fn machine(&self) -> Machine {
@@ -115,15 +114,15 @@ impl<'a> Elf64<'a> {
     }
 
     pub fn format_version(&self) -> u32 {
-        self.header.format_version.clone()
+        self.header.format_version
     }
 
     pub fn entry(&self) -> Address {
-        self.header.entry.clone()
+        self.header.entry
     }
 
     pub fn flags(&self) -> u32 {
-        self.header.flags.clone()
+        self.header.flags
     }
 
     pub fn program_number(&self) -> usize {
@@ -136,49 +135,49 @@ impl<'a> Elf64<'a> {
         let program_header = self.program_table.pick(index)?;
         let encoding = self.encoding();
 
-        let start = program_header.file_offset.clone() as usize;
-        let end = start + (program_header.file_size.clone() as usize);
+        let start = program_header.file_offset as usize;
+        let end = start + (program_header.file_size as usize);
         if self.raw.len() < end {
             return Err(Error::SliceTooShort);
         };
         let slice = &self.raw[start..end];
 
-        let data = match &program_header.type_ {
-            &ProgramType::Null => None,
-            &ProgramType::Load => Some(ProgramData::Load {
+        let data = match program_header.ty {
+            ProgramType::Null => None,
+            ProgramType::Load => Some(ProgramData::Load {
                 data: slice,
-                address: program_header.virtual_address.clone(),
+                address: program_header.virtual_address,
             }),
-            &ProgramType::Dynamic => unimplemented!("dynamic linking table"),
-            &ProgramType::Interpreter => {
+            ProgramType::Dynamic => unimplemented!("dynamic linking table"),
+            ProgramType::Interpreter => {
                 let path = str::from_utf8(slice).map_err(Error::Utf8Error)?;
                 Some(ProgramData::Interpreter(path))
             },
-            &ProgramType::Note => Some(ProgramData::Note(NoteTable::new(slice, encoding))),
-            &ProgramType::Shlib => None,
-            &ProgramType::ProgramHeaderTable => None,
-            &ProgramType::OsSpecific(code) => Some(ProgramData::OsSpecific {
-                code: code,
+            ProgramType::Note => Some(ProgramData::Note(NoteTable::new(slice, encoding))),
+            ProgramType::Shlib => None,
+            ProgramType::ProgramHeaderTable => None,
+            ProgramType::OsSpecific(code) => Some(ProgramData::OsSpecific {
+                code,
                 data: slice,
-                address: program_header.virtual_address.clone(),
+                address: program_header.virtual_address,
             }),
-            &ProgramType::ProcessorSprcific(code) => Some(ProgramData::ProcessorSprcific {
-                code: code,
+            ProgramType::ProcessorSprcific(code) => Some(ProgramData::ProcessorSprcific {
+                code,
                 data: slice,
-                address: program_header.virtual_address.clone(),
+                address: program_header.virtual_address,
             }),
-            &ProgramType::Unknown(code) => Some(ProgramData::Unknown {
-                code: code,
+            ProgramType::Unknown(code) => Some(ProgramData::Unknown {
+                code,
                 data: slice,
-                address: program_header.virtual_address.clone(),
+                address: program_header.virtual_address,
             }),
         };
 
         Ok(data.map(|d| Program {
             data: d,
-            flags: program_header.flags.clone(),
-            memory_size: program_header.memory_size.clone(),
-            address_alignment: program_header.address_alignment.clone(),
+            flags: program_header.flags,
+            memory_size: program_header.memory_size,
+            address_alignment: program_header.address_alignment,
         }))
     }
 
@@ -190,64 +189,57 @@ impl<'a> Elf64<'a> {
         let section_header = self.section_table.pick(index)?;
         let encoding = self.encoding();
 
-        let start = section_header.offset.clone() as usize;
-        let end = start + (section_header.size.clone() as usize);
+        let start = section_header.offset as usize;
+        let end = start + (section_header.size as usize);
         if self.raw.len() < end {
             return Err(Error::SliceTooShort);
         };
         let slice = &self.raw[start..end];
 
-        let data = match &section_header.type_ {
-            &SectionType::Null => None,
-            &SectionType::ProgramBits => Some(SectionData::ProgramBits(slice)),
-            &SectionType::SymbolTable => Some(SectionData::SymbolTable {
+        let data = match section_header.ty {
+            SectionType::Null => None,
+            SectionType::ProgramBits => Some(SectionData::ProgramBits(slice)),
+            SectionType::SymbolTable => Some(SectionData::SymbolTable {
                 table: Table::new(slice, encoding),
-                number_of_locals: section_header.info.clone() as usize,
+                number_of_locals: section_header.info as usize,
             }),
-            &SectionType::StringTable => Some(SectionData::StringTable(StringTable::new(slice))),
-            &SectionType::Rela => Some(SectionData::Rela {
+            SectionType::StringTable => Some(SectionData::StringTable(StringTable::new(slice))),
+            SectionType::Rela => Some(SectionData::Rela {
                 table: Table::new(slice, encoding),
-                apply_to_section: (section_header.info.clone() as u16).into(),
+                apply_to_section: (section_header.info as u16).into(),
             }),
-            &SectionType::Hash => unimplemented!("hash table"),
-            &SectionType::Dynamic => unimplemented!("dynamic linking table"),
-            &SectionType::Note => Some(SectionData::Note(NoteTable::new(slice, encoding))),
-            &SectionType::NoBits => None,
-            &SectionType::Rel => Some(SectionData::Rel {
+            SectionType::Hash => unimplemented!("hash table"),
+            SectionType::Dynamic => unimplemented!("dynamic linking table"),
+            SectionType::Note => Some(SectionData::Note(NoteTable::new(slice, encoding))),
+            SectionType::NoBits => None,
+            SectionType::Rel => Some(SectionData::Rel {
                 table: Table::new(slice, encoding),
-                apply_to_section: (section_header.info.clone() as u16).into(),
+                apply_to_section: (section_header.info as u16).into(),
             }),
-            &SectionType::Shlib => None,
-            &SectionType::DynamicSymbolTable => Some(SectionData::DynamicSymbolTable {
+            SectionType::Shlib => None,
+            SectionType::DynamicSymbolTable => Some(SectionData::DynamicSymbolTable {
                 table: Table::new(slice, encoding),
-                number_of_locals: section_header.info.clone() as usize,
+                number_of_locals: section_header.info as usize,
             }),
-            &SectionType::OsSpecific(code) => Some(SectionData::OsSpecific {
-                code: code,
-                data: slice,
-            }),
-            &SectionType::ProcessorSprcific(code) => Some(SectionData::ProcessorSprcific {
-                code: code,
-                data: slice,
-            }),
-            &SectionType::Unknown(code) => Some(SectionData::Unknown {
-                code: code,
-                data: slice,
-            }),
+            SectionType::OsSpecific(code) => Some(SectionData::OsSpecific { code, slice }),
+            SectionType::ProcessorSprcific(code) => {
+                Some(SectionData::ProcessorSprcific { code, slice })
+            },
+            SectionType::Unknown(code) => Some(SectionData::Unknown { code, slice }),
         };
 
         let name = match &self.names {
-            Some(ref table) => table.pick(section_header.name.clone() as usize)?,
+            Some(ref table) => table.pick(section_header.name as usize)?,
             None => "",
         };
 
         Ok(data.map(|d| Section {
             data: d,
-            name: name,
-            flags: section_header.flags.clone(),
-            address: section_header.address.clone(),
-            address_alignment: section_header.address_alignment.clone(),
-            link: section_header.link.clone(),
+            name,
+            flags: section_header.flags,
+            address: section_header.address,
+            address_alignment: section_header.address_alignment,
+            link: section_header.link,
         }))
     }
 }
@@ -310,15 +302,15 @@ pub enum SectionData<'a> {
     },
     OsSpecific {
         code: u32,
-        data: &'a [u8],
+        slice: &'a [u8],
     },
     ProcessorSprcific {
         code: u32,
-        data: &'a [u8],
+        slice: &'a [u8],
     },
     Unknown {
         code: u32,
-        data: &'a [u8],
+        slice: &'a [u8],
     },
 }
 

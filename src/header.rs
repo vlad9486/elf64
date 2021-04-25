@@ -1,9 +1,5 @@
-use super::{
-    Error, UnexpectedSize, Address, Offset, Index, SectionHeader, ProgramHeader,
-    Entry, Table,
-};
-
 use core::{convert::TryFrom, fmt};
+use super::{Error, UnexpectedSize, Address, Offset, Index, SectionHeader, ProgramHeader, Entry, Table};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum Class {
@@ -192,7 +188,7 @@ pub enum Machine {
     Ia64,
     X86_64,
     AArch64,
-    BPF,
+    Bpf,
     Unknown(u16),
 }
 
@@ -209,7 +205,7 @@ impl From<u16> for Machine {
             0x0032 => Machine::Ia64,
             0x003e => Machine::X86_64,
             0x00b7 => Machine::AArch64,
-            0x00f7 => Machine::BPF,
+            0x00f7 => Machine::Bpf,
             t => Machine::Unknown(t),
         }
     }
@@ -228,7 +224,7 @@ impl From<Machine> for u16 {
             Machine::Ia64 => 0x0032,
             Machine::X86_64 => 0x003e,
             Machine::AArch64 => 0x00b7,
-            Machine::BPF => 0x00f7,
+            Machine::Bpf => 0x00f7,
             Machine::Unknown(t) => t,
         }
     }
@@ -237,7 +233,7 @@ impl From<Machine> for u16 {
 #[derive(Clone, Eq, PartialEq)]
 pub struct Header {
     pub identifier: Identifier,
-    pub type_: Type,
+    pub ty: Type,
     pub machine: Machine,
     pub format_version: u32,
     pub entry: Address,
@@ -257,7 +253,7 @@ impl<'a> fmt::Debug for Header {
             .field("version", &self.identifier.version)
             .field("abi", &self.identifier.abi)
             .field("abi_version", &self.identifier.abi_version)
-            .field("type", &self.type_)
+            .field("type", &self.ty)
             .field("machine", &self.machine)
             .field("format_version", &self.format_version)
             .field("entry", &format_args!("0x{:08x}", self.entry))
@@ -287,8 +283,8 @@ impl Header {
         };
         let encoding = identifier.encoding.clone();
         Ok(Header {
-            identifier: identifier,
-            type_: read_int!(&slice[0x10..], &encoding, u16).into(),
+            identifier,
+            ty: read_int!(&slice[0x10..], &encoding, u16).into(),
             machine: read_int!(&slice[0x12..], &encoding, u16).into(),
             format_version: read_int!(&slice[0x14..], &encoding, u32),
             entry: read_int!(&slice[0x18..], &encoding, u64),

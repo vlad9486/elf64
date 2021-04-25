@@ -25,7 +25,7 @@ pub enum SymbolType {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct SymbolInfo {
     pub binding: SymbolBinding,
-    pub type_: SymbolType,
+    pub ty: SymbolType,
 }
 
 impl From<u8> for SymbolInfo {
@@ -39,7 +39,7 @@ impl From<u8> for SymbolInfo {
                 t @ 0x0d..=0x0f => SymbolBinding::ProcessorSpecific(t - 0x0d),
                 t => SymbolBinding::Unknown(t),
             },
-            type_: match v & 0x0f {
+            ty: match v & 0x0f {
                 0x00 => SymbolType::Nothing,
                 0x01 => SymbolType::Object,
                 0x02 => SymbolType::Function,
@@ -55,10 +55,7 @@ impl From<u8> for SymbolInfo {
 
 impl From<SymbolInfo> for u8 {
     fn from(v: SymbolInfo) -> Self {
-        let SymbolInfo {
-            binding: binding,
-            type_: type_,
-        } = v;
+        let SymbolInfo { binding, ty } = v;
         let high = match binding {
             SymbolBinding::Local => 0x00,
             SymbolBinding::Global => 0x01,
@@ -67,7 +64,7 @@ impl From<SymbolInfo> for u8 {
             SymbolBinding::ProcessorSpecific(t) => t + 0x0d,
             SymbolBinding::Unknown(t) => t,
         };
-        let low = match type_ {
+        let low = match ty {
             SymbolType::Nothing => 0x00,
             SymbolType::Object => 0x01,
             SymbolType::Function => 0x02,

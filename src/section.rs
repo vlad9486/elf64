@@ -1,6 +1,5 @@
-use super::{Address, Offset, Error, Encoding, Entry};
-
 use core::fmt;
+use super::{Address, Offset, Error, Encoding, Entry};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum Index {
@@ -94,8 +93,8 @@ impl From<SectionType> for u32 {
             SectionType::Rel => 0x00000009,
             SectionType::Shlib => 0x0000000a,
             SectionType::DynamicSymbolTable => 0x0000000b,
-            SectionType::OsSpecific(t) => 0x60000000 + t & 0x0fffffff,
-            SectionType::ProcessorSprcific(t) => 0x70000000 + t & 0x0fffffff,
+            SectionType::OsSpecific(t) => 0x60000000 + (t & 0x0fffffff),
+            SectionType::ProcessorSprcific(t) => 0x70000000 + (t & 0x0fffffff),
             SectionType::Unknown(t) => t,
         }
     }
@@ -112,7 +111,7 @@ bitflags! {
 #[derive(Clone, Eq, PartialEq)]
 pub struct SectionHeader {
     pub name: u32,
-    pub type_: SectionType,
+    pub ty: SectionType,
     pub flags: SectionFlags,
     pub address: Address,
     pub offset: Offset,
@@ -127,7 +126,7 @@ impl<'a> fmt::Debug for SectionHeader {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("SectionHeader")
             .field("name", &self.name)
-            .field("type", &self.type_)
+            .field("type", &self.ty)
             .field("flags", &self.flags)
             .field("address", &format_args!("0x{:016x}", self.address))
             .field("offset", &format_args!("0x{:016x}", self.offset))
@@ -159,7 +158,7 @@ impl Entry for SectionHeader {
         // ignored
         Ok(SectionHeader {
             name: read_int!(&slice[0x00..], &encoding, u32),
-            type_: read_int!(&slice[0x04..], &encoding, u32).into(),
+            ty: read_int!(&slice[0x04..], &encoding, u32).into(),
             flags: SectionFlags::from_bits_truncate(read_int!(&slice[0x08..], &encoding, u32)),
             address: read_int!(&slice[0x10..], &encoding, u64),
             offset: read_int!(&slice[0x18..], &encoding, u64),

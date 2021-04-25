@@ -7,7 +7,7 @@ pub struct StringTable<'a> {
 
 impl<'a> StringTable<'a> {
     pub fn new(slice: &'a [u8]) -> Self {
-        StringTable { slice: slice }
+        StringTable { slice }
     }
 
     pub fn pick(&self, index: usize) -> Result<&'a str, Error> {
@@ -32,7 +32,7 @@ impl<'a> StringTable<'a> {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct NoteEntry<'a> {
-    pub type_: u64,
+    pub ty: u64,
     pub name: &'a str,
     pub description: &'a [u8],
 }
@@ -45,16 +45,13 @@ pub struct NoteTable<'a> {
 
 impl<'a> NoteTable<'a> {
     pub fn new(slice: &'a [u8], encoding: Encoding) -> Self {
-        NoteTable {
-            slice: slice,
-            encoding: encoding,
-        }
+        NoteTable { slice, encoding }
     }
 
     pub fn next(&self, position: &mut usize) -> Result<NoteEntry<'a>, Error> {
         use core::str;
 
-        if self.slice.len() < position.clone() + 0x18 {
+        if self.slice.len() < *position + 0x18 {
             return Err(Error::SliceTooShort);
         };
 
@@ -63,21 +60,21 @@ impl<'a> NoteTable<'a> {
         let header = &self.slice[*position..];
         let name_size = read_int!(&header[0x00..], &self.encoding, u64) as usize;
         let description_size = read_int!(&header[0x08..], &self.encoding, u64) as usize;
-        let type_ = read_int!(&header[0x10..], &self.encoding, u64);
+        let ty = read_int!(&header[0x10..], &self.encoding, u64);
 
         let name_size_aligned = align8(name_size);
         let description_size = align8(description_size);
 
-        let new_position = position.clone() + 0x18 + name_size_aligned + description_size;
+        let new_position = *position + 0x18 + name_size_aligned + description_size;
         if self.slice.len() < new_position {
             return Err(Error::SliceTooShort);
         };
 
-        let str_start = position.clone() + 0x18;
+        let str_start = *position + 0x18;
         let str_end = str_start + name_size;
 
         let entry = NoteEntry {
-            type_: type_,
+            ty,
             name: str::from_utf8(&self.slice[str_start..str_end]).map_err(Error::Utf8Error)?,
             description: &self.slice[str_end..new_position],
         };

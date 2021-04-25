@@ -1,6 +1,5 @@
-use super::{Address, Offset, Error, Encoding, Entry};
-
 use core::fmt;
+use super::{Address, Offset, Error, Encoding, Entry};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum ProgramType {
@@ -43,8 +42,8 @@ impl From<ProgramType> for u32 {
             ProgramType::Note => 0x00000004,
             ProgramType::Shlib => 0x00000005,
             ProgramType::ProgramHeaderTable => 0x00000006,
-            ProgramType::OsSpecific(t) => 0x60000000 + t & 0x0fffffff,
-            ProgramType::ProcessorSprcific(t) => 0x70000000 + t & 0x0fffffff,
+            ProgramType::OsSpecific(t) => 0x60000000 + (t & 0x0fffffff),
+            ProgramType::ProcessorSprcific(t) => 0x70000000 + (t & 0x0fffffff),
             ProgramType::Unknown(t) => t,
         }
     }
@@ -60,7 +59,7 @@ bitflags! {
 
 #[derive(Clone, Eq, PartialEq)]
 pub struct ProgramHeader {
-    pub type_: ProgramType,
+    pub ty: ProgramType,
     pub flags: ProgramFlags,
     pub file_offset: Offset,
     pub virtual_address: Address,
@@ -73,7 +72,7 @@ pub struct ProgramHeader {
 impl<'a> fmt::Debug for ProgramHeader {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("ProgramHeader")
-            .field("type", &self.type_)
+            .field("type", &self.ty)
             .field("flags", &self.flags)
             .field("file_offset", &format_args!("0x{:016x}", self.file_offset))
             .field(
@@ -105,7 +104,7 @@ impl Entry for ProgramHeader {
         }
 
         Ok(ProgramHeader {
-            type_: read_int!(&slice[0x00..], &encoding, u32).into(),
+            ty: read_int!(&slice[0x00..], &encoding, u32).into(),
             flags: ProgramFlags::from_bits_truncate(read_int!(&slice[0x04..], &encoding, u32)),
             file_offset: read_int!(&slice[0x08..], &encoding, u64),
             virtual_address: read_int!(&slice[0x10..], &encoding, u64),

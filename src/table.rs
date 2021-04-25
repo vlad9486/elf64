@@ -1,5 +1,4 @@
 use core::marker::PhantomData;
-
 use super::{Encoding, Error};
 
 pub trait Entry
@@ -29,8 +28,8 @@ where
 {
     pub fn new(slice: &'a [u8], encoding: Encoding) -> Self {
         Table {
-            slice: slice,
-            encoding: encoding,
+            slice,
+            encoding,
             phantom_data: PhantomData,
         }
     }
