@@ -97,25 +97,17 @@ impl Entry for SymbolEntry {
     const SIZE: usize = 0x18;
 
     fn new(slice: &[u8], encoding: Encoding) -> Result<Self, Self::Error> {
-        use byteorder::{ByteOrder, LittleEndian, BigEndian};
-
-        match encoding {
-            Encoding::Little => Ok(SymbolEntry {
-                name: LittleEndian::read_u32(&slice[0x00..0x04]),
-                info: slice[0x04].into(),
-                reserved: slice[0x05],
-                section_index: LittleEndian::read_u16(&slice[0x06..0x08]).into(),
-                value: LittleEndian::read_u64(&slice[0x08..0x10]),
-                size: LittleEndian::read_u64(&slice[0x10..0x18]),
-            }),
-            Encoding::Big => Ok(SymbolEntry {
-                name: BigEndian::read_u32(&slice[0x00..0x04]),
-                info: slice[0x04].into(),
-                reserved: slice[0x05],
-                section_index: BigEndian::read_u16(&slice[0x06..0x08]).into(),
-                value: BigEndian::read_u64(&slice[0x08..0x10]),
-                size: BigEndian::read_u64(&slice[0x10..0x18]),
-            }),
+        if slice.len() < Self::SIZE {
+            return Err(Error::SliceTooShort);
         }
+
+        Ok(SymbolEntry {
+            name: read_int!(&slice[0x00..], &encoding, u32),
+            info: slice[0x04].into(),
+            reserved: slice[0x05],
+            section_index: read_int!(&slice[0x06..], &encoding, u16).into(),
+            value: read_int!(&slice[0x08..], &encoding, u64),
+            size: read_int!(&slice[0x10..], &encoding, u64),
+        })
     }
 }

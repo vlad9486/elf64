@@ -5,8 +5,19 @@
 #[macro_use]
 extern crate bitflags;
 
+macro_rules! read_int {
+    ($slice:expr, $encoding:expr, $ty:ty) => {{
+        use core::{mem, convert::TryFrom};
+        let a = TryFrom::try_from(&$slice[..mem::size_of::<$ty>()]).unwrap();
+        match $encoding {
+            &Encoding::Little => <$ty>::from_le_bytes(a),
+            &Encoding::Big => <$ty>::from_be_bytes(a),
+        }
+    }};
+}
+
 mod common;
-pub use self::common::{Address, Offset, Error, UnexpectedSize, ErrorSliceLength};
+pub use self::common::{Address, Offset, Error, UnexpectedSize};
 
 mod header;
 use self::header::Header;
@@ -44,7 +55,7 @@ pub struct Elf64<'a> {
 impl<'a> Elf64<'a> {
     pub fn new(raw: &'a [u8]) -> Result<Self, Error> {
         if raw.len() < Header::SIZE {
-            return Err(Error::slice_too_short());
+            return Err(Error::SliceTooShort);
         };
 
         let header = Header::new(&raw[0..Header::SIZE])?;
@@ -120,7 +131,7 @@ impl<'a> Elf64<'a> {
     }
 
     pub fn program(&self, index: usize) -> Result<Option<Program<'a>>, Error> {
-        use core::str::from_utf8;
+        use core::str;
 
         let program_header = self.program_table.pick(index)?;
         let encoding = self.encoding();
@@ -128,7 +139,7 @@ impl<'a> Elf64<'a> {
         let start = program_header.file_offset.clone() as usize;
         let end = start + (program_header.file_size.clone() as usize);
         if self.raw.len() < end {
-            return Err(Error::slice_too_short());
+            return Err(Error::SliceTooShort);
         };
         let slice = &self.raw[start..end];
 
@@ -140,7 +151,7 @@ impl<'a> Elf64<'a> {
             }),
             &ProgramType::Dynamic => unimplemented!("dynamic linking table"),
             &ProgramType::Interpreter => {
-                let path = from_utf8(slice).map_err(Error::Utf8Error)?;
+                let path = str::from_utf8(slice).map_err(Error::Utf8Error)?;
                 Some(ProgramData::Interpreter(path))
             },
             &ProgramType::Note => Some(ProgramData::Note(NoteTable::new(slice, encoding))),
@@ -182,7 +193,7 @@ impl<'a> Elf64<'a> {
         let start = section_header.offset.clone() as usize;
         let end = start + (section_header.size.clone() as usize);
         if self.raw.len() < end {
-            return Err(Error::slice_too_short());
+            return Err(Error::SliceTooShort);
         };
         let slice = &self.raw[start..end];
 

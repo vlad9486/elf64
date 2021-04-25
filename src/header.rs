@@ -1,5 +1,5 @@
 use super::{
-    Error, UnexpectedSize, ErrorSliceLength, Address, Offset, Index, SectionHeader, ProgramHeader,
+    Error, UnexpectedSize, Address, Offset, Index, SectionHeader, ProgramHeader,
     Entry, Table,
 };
 
@@ -271,59 +271,34 @@ impl Header {
     pub const SIZE: usize = 0x40;
 
     pub fn new(slice: &[u8]) -> Result<Self, Error> {
-        use byteorder::{ByteOrder, LittleEndian, BigEndian};
+        if slice.len() < Self::SIZE {
+            return Err(Error::SliceTooShort);
+        }
 
         let identifier = Identifier::new(&slice[0x00..0x10])?;
-        match identifier.encoding {
-            Encoding::Little => {
-                if LittleEndian::read_u16(&slice[0x34..0x36]) as usize != Self::SIZE {
-                    return Err(Error::UnexpectedSize(UnexpectedSize::Header));
-                };
-                if LittleEndian::read_u16(&slice[0x36..0x38]) as usize != ProgramHeader::SIZE {
-                    return Err(Error::UnexpectedSize(UnexpectedSize::ProgramHeader));
-                };
-                if LittleEndian::read_u16(&slice[0x3a..0x3c]) as usize != SectionHeader::SIZE {
-                    return Err(Error::UnexpectedSize(UnexpectedSize::SectionHeader));
-                };
-                Ok(Header {
-                    identifier: identifier,
-                    type_: LittleEndian::read_u16(&slice[0x10..0x12]).into(),
-                    machine: LittleEndian::read_u16(&slice[0x12..0x14]).into(),
-                    format_version: LittleEndian::read_u32(&slice[0x14..0x18]),
-                    entry: LittleEndian::read_u64(&slice[0x18..0x20]),
-                    program_headers_offset: LittleEndian::read_u64(&slice[0x20..0x28]),
-                    section_headers_offset: LittleEndian::read_u64(&slice[0x28..0x30]),
-                    flags: LittleEndian::read_u32(&slice[0x30..0x34]),
-                    program_header_number: LittleEndian::read_u16(&slice[0x38..0x3a]),
-                    section_header_number: LittleEndian::read_u16(&slice[0x3c..0x3e]),
-                    section_names: LittleEndian::read_u16(&slice[0x3e..0x40]).into(),
-                })
-            },
-            Encoding::Big => {
-                if BigEndian::read_u16(&slice[0x34..0x36]) as usize != Self::SIZE {
-                    return Err(Error::UnexpectedSize(UnexpectedSize::Header));
-                };
-                if BigEndian::read_u16(&slice[0x36..0x38]) as usize != ProgramHeader::SIZE {
-                    return Err(Error::UnexpectedSize(UnexpectedSize::ProgramHeader));
-                };
-                if BigEndian::read_u16(&slice[0x3a..0x3c]) as usize != SectionHeader::SIZE {
-                    return Err(Error::UnexpectedSize(UnexpectedSize::SectionHeader));
-                };
-                Ok(Header {
-                    identifier: identifier,
-                    type_: BigEndian::read_u16(&slice[0x10..0x12]).into(),
-                    machine: BigEndian::read_u16(&slice[0x12..0x14]).into(),
-                    format_version: BigEndian::read_u32(&slice[0x14..0x18]),
-                    entry: BigEndian::read_u64(&slice[0x18..0x20]),
-                    program_headers_offset: BigEndian::read_u64(&slice[0x20..0x28]),
-                    section_headers_offset: BigEndian::read_u64(&slice[0x28..0x30]),
-                    flags: BigEndian::read_u32(&slice[0x30..0x34]),
-                    program_header_number: BigEndian::read_u16(&slice[0x38..0x3a]),
-                    section_header_number: BigEndian::read_u16(&slice[0x3c..0x3e]),
-                    section_names: BigEndian::read_u16(&slice[0x3e..0x40]).into(),
-                })
-            },
-        }
+        if read_int!(&slice[0x34..], &identifier.encoding, u16) as usize != Self::SIZE {
+            return Err(Error::UnexpectedSize(UnexpectedSize::Header));
+        };
+        if read_int!(&slice[0x36..], &identifier.encoding, u16) as usize != ProgramHeader::SIZE {
+            return Err(Error::UnexpectedSize(UnexpectedSize::ProgramHeader));
+        };
+        if read_int!(&slice[0x3a..], &identifier.encoding, u16) as usize != SectionHeader::SIZE {
+            return Err(Error::UnexpectedSize(UnexpectedSize::SectionHeader));
+        };
+        let encoding = identifier.encoding.clone();
+        Ok(Header {
+            identifier: identifier,
+            type_: read_int!(&slice[0x10..], &encoding, u16).into(),
+            machine: read_int!(&slice[0x12..], &encoding, u16).into(),
+            format_version: read_int!(&slice[0x14..], &encoding, u32),
+            entry: read_int!(&slice[0x18..], &encoding, u64),
+            program_headers_offset: read_int!(&slice[0x20..], &encoding, u64),
+            section_headers_offset: read_int!(&slice[0x28..], &encoding, u64),
+            flags: read_int!(&slice[0x30..], &encoding, u32),
+            program_header_number: read_int!(&slice[0x38..], &encoding, u16),
+            section_header_number: read_int!(&slice[0x3c..], &encoding, u16),
+            section_names: read_int!(&slice[0x3e..], &encoding, u16).into(),
+        })
     }
 
     pub fn program_header_table<'a>(
@@ -333,7 +308,7 @@ impl Header {
         let start = self.program_headers_offset as usize;
         let end = start + (self.program_header_number as usize) * ProgramHeader::SIZE;
         if raw.len() < end {
-            return Err(Error::slice_too_short());
+            return Err(Error::SliceTooShort);
         };
         Ok(Table::new(
             &raw[start..end],
@@ -348,7 +323,7 @@ impl Header {
         let start = self.section_headers_offset as usize;
         let end = start + (self.section_header_number as usize) * SectionHeader::SIZE;
         if raw.len() < end {
-            return Err(Error::slice_too_short());
+            return Err(Error::SliceTooShort);
         };
         Ok(Table::new(
             &raw[start..end],

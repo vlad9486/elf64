@@ -100,31 +100,19 @@ impl Entry for ProgramHeader {
     const SIZE: usize = 0x38;
 
     fn new(slice: &[u8], encoding: Encoding) -> Result<Self, Self::Error> {
-        use byteorder::{ByteOrder, LittleEndian, BigEndian};
-
-        let flags = ProgramFlags::from_bits_truncate;
-
-        match encoding {
-            Encoding::Little => Ok(ProgramHeader {
-                type_: LittleEndian::read_u32(&slice[0x00..0x04]).into(),
-                flags: flags(LittleEndian::read_u32(&slice[0x04..0x08])),
-                file_offset: LittleEndian::read_u64(&slice[0x08..0x10]),
-                virtual_address: LittleEndian::read_u64(&slice[0x10..0x18]),
-                physical_address: LittleEndian::read_u64(&slice[0x18..0x20]),
-                file_size: LittleEndian::read_u64(&slice[0x20..0x28]),
-                memory_size: LittleEndian::read_u64(&slice[0x28..0x30]),
-                address_alignment: LittleEndian::read_u64(&slice[0x30..0x38]),
-            }),
-            Encoding::Big => Ok(ProgramHeader {
-                type_: BigEndian::read_u32(&slice[0x00..0x04]).into(),
-                flags: flags(BigEndian::read_u32(&slice[0x04..0x08])),
-                file_offset: BigEndian::read_u64(&slice[0x08..0x10]),
-                virtual_address: BigEndian::read_u64(&slice[0x10..0x18]),
-                physical_address: BigEndian::read_u64(&slice[0x18..0x20]),
-                file_size: BigEndian::read_u64(&slice[0x20..0x28]),
-                memory_size: BigEndian::read_u64(&slice[0x28..0x30]),
-                address_alignment: BigEndian::read_u64(&slice[0x30..0x38]),
-            }),
+        if slice.len() < Self::SIZE {
+            return Err(Error::SliceTooShort);
         }
+
+        Ok(ProgramHeader {
+            type_: read_int!(&slice[0x00..], &encoding, u32).into(),
+            flags: ProgramFlags::from_bits_truncate(read_int!(&slice[0x04..], &encoding, u32)),
+            file_offset: read_int!(&slice[0x08..], &encoding, u64),
+            virtual_address: read_int!(&slice[0x10..], &encoding, u64),
+            physical_address: read_int!(&slice[0x18..], &encoding, u64),
+            file_size: read_int!(&slice[0x20..], &encoding, u64),
+            memory_size: read_int!(&slice[0x28..], &encoding, u64),
+            address_alignment: read_int!(&slice[0x30..], &encoding, u64),
+        })
     }
 }

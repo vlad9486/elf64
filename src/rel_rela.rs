@@ -13,26 +13,16 @@ impl Entry for RelEntry {
     const SIZE: usize = 0x10;
 
     fn new(slice: &[u8], encoding: Encoding) -> Result<Self, Self::Error> {
-        use byteorder::{ByteOrder, LittleEndian, BigEndian};
-
-        match encoding {
-            Encoding::Little => {
-                let temp = LittleEndian::read_u64(&slice[0x08..0x10]);
-                Ok(RelEntry {
-                    address: LittleEndian::read_u64(&slice[0x00..0x08]),
-                    symbol_index: (temp / 0x100000000) as u32,
-                    relocation_type: (temp & 0xffffffff) as u32,
-                })
-            },
-            Encoding::Big => {
-                let temp = BigEndian::read_u64(&slice[0x08..0x10]);
-                Ok(RelEntry {
-                    address: BigEndian::read_u64(&slice[0x00..0x08]),
-                    symbol_index: (temp / 0x100000000) as u32,
-                    relocation_type: (temp & 0xffffffff) as u32,
-                })
-            },
+        if slice.len() < Self::SIZE {
+            return Err(Error::SliceTooShort);
         }
+
+        let temp = read_int!(&slice[0x08..], &encoding, u64);
+        Ok(RelEntry {
+            address: read_int!(&slice[0x00..], &encoding, u64),
+            symbol_index: (temp / 0x100000000) as u32,
+            relocation_type: (temp & 0xffffffff) as u32,
+        })
     }
 }
 
@@ -50,27 +40,16 @@ impl Entry for RelaEntry {
     const SIZE: usize = 0x18;
 
     fn new(slice: &[u8], encoding: Encoding) -> Result<Self, Self::Error> {
-        use byteorder::{ByteOrder, LittleEndian, BigEndian};
-
-        match encoding {
-            Encoding::Little => {
-                let temp = LittleEndian::read_u64(&slice[0x08..0x10]);
-                Ok(RelaEntry {
-                    address: LittleEndian::read_u64(&slice[0x00..0x08]),
-                    symbol_index: (temp / 0x100000000) as u32,
-                    relocation_type: (temp & 0xffffffff) as u32,
-                    addend: LittleEndian::read_i64(&slice[0x10..0x18]),
-                })
-            },
-            Encoding::Big => {
-                let temp = BigEndian::read_u64(&slice[0x08..0x10]);
-                Ok(RelaEntry {
-                    address: BigEndian::read_u64(&slice[0x00..0x08]),
-                    symbol_index: (temp / 0x100000000) as u32,
-                    relocation_type: (temp & 0xffffffff) as u32,
-                    addend: BigEndian::read_i64(&slice[0x10..0x18]),
-                })
-            },
+        if slice.len() < Self::SIZE {
+            return Err(Error::SliceTooShort);
         }
+
+        let temp = read_int!(&slice[0x08..], &encoding, u64);
+        Ok(RelaEntry {
+            address: read_int!(&slice[0x00..], &encoding, u64),
+            symbol_index: (temp / 0x100000000) as u32,
+            relocation_type: (temp & 0xffffffff) as u32,
+            addend: read_int!(&slice[0x10..], &encoding, i64),
+        })
     }
 }

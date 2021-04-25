@@ -149,39 +149,25 @@ impl Entry for SectionHeader {
     const SIZE: usize = 0x40;
 
     fn new(slice: &[u8], encoding: Encoding) -> Result<Self, Self::Error> {
-        use byteorder::{ByteOrder, LittleEndian, BigEndian};
-
-        let flags = SectionFlags::from_bits_truncate;
+        if slice.len() < Self::SIZE {
+            return Err(Error::SliceTooShort);
+        }
 
         // WARNING:
         //  slice[0x0c..0x10]
         //  slice[0x2a..0x2c]
         // ignored
-        match encoding {
-            Encoding::Little => Ok(SectionHeader {
-                name: LittleEndian::read_u32(&slice[0x00..0x04]),
-                type_: LittleEndian::read_u32(&slice[0x04..0x08]).into(),
-                flags: flags(LittleEndian::read_u32(&slice[0x08..0x0c])),
-                address: LittleEndian::read_u64(&slice[0x10..0x18]),
-                offset: LittleEndian::read_u64(&slice[0x18..0x20]),
-                size: LittleEndian::read_u64(&slice[0x20..0x28]),
-                link: LittleEndian::read_u16(&slice[0x28..0x2a]).into(),
-                info: LittleEndian::read_u32(&slice[0x2c..0x30]).into(),
-                address_alignment: LittleEndian::read_u64(&slice[0x30..0x38]),
-                number_of_entries: LittleEndian::read_u64(&slice[0x38..0x40]),
-            }),
-            Encoding::Big => Ok(SectionHeader {
-                name: BigEndian::read_u32(&slice[0x00..0x04]),
-                type_: BigEndian::read_u32(&slice[0x04..0x08]).into(),
-                flags: flags(BigEndian::read_u32(&slice[0x08..0x0c])),
-                address: BigEndian::read_u64(&slice[0x10..0x18]),
-                offset: BigEndian::read_u64(&slice[0x18..0x20]),
-                size: BigEndian::read_u64(&slice[0x20..0x28]),
-                link: BigEndian::read_u16(&slice[0x28..0x2a]).into(),
-                info: BigEndian::read_u32(&slice[0x2c..0x30]).into(),
-                address_alignment: BigEndian::read_u64(&slice[0x30..0x38]),
-                number_of_entries: BigEndian::read_u64(&slice[0x38..0x40]),
-            }),
-        }
+        Ok(SectionHeader {
+            name: read_int!(&slice[0x00..], &encoding, u32),
+            type_: read_int!(&slice[0x04..], &encoding, u32).into(),
+            flags: SectionFlags::from_bits_truncate(read_int!(&slice[0x08..], &encoding, u32)),
+            address: read_int!(&slice[0x10..], &encoding, u64),
+            offset: read_int!(&slice[0x18..], &encoding, u64),
+            size: read_int!(&slice[0x20..], &encoding, u64),
+            link: read_int!(&slice[0x28..], &encoding, u16).into(),
+            info: read_int!(&slice[0x2c..], &encoding, u32),
+            address_alignment: read_int!(&slice[0x30..], &encoding, u64),
+            number_of_entries: read_int!(&slice[0x38..], &encoding, u64),
+        })
     }
 }

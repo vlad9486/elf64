@@ -1,4 +1,4 @@
-use super::{Error, ErrorSliceLength, Encoding};
+use super::{Error, Encoding};
 
 #[derive(Clone)]
 pub struct StringTable<'a> {
@@ -17,7 +17,7 @@ impl<'a> StringTable<'a> {
         let mut length = 0;
         loop {
             if index + length > self.slice.len() {
-                return Err(Error::slice_too_short());
+                return Err(Error::SliceTooShort);
             }
             if self.slice[index + length] == 0 || length == MAX_LENGTH {
                 break;
@@ -52,34 +52,25 @@ impl<'a> NoteTable<'a> {
     }
 
     pub fn next(&self, position: &mut usize) -> Result<NoteEntry<'a>, Error> {
-        use core::str::from_utf8;
-        use byteorder::{ByteOrder, LittleEndian, BigEndian};
+        use core::str;
 
         if self.slice.len() < position.clone() + 0x18 {
-            return Err(Error::slice_too_short());
+            return Err(Error::SliceTooShort);
         };
 
         let align8 = |x: usize| if x % 8 == 0 { x } else { x + 8 - x % 8 };
 
-        let (name_size, description_size, type_) = match self.encoding {
-            Encoding::Little => (
-                LittleEndian::read_u64(&self.slice[0x00..0x08]) as usize,
-                LittleEndian::read_u64(&self.slice[0x08..0x10]) as usize,
-                LittleEndian::read_u64(&self.slice[0x10..0x18]),
-            ),
-            Encoding::Big => (
-                BigEndian::read_u64(&self.slice[0x00..0x08]) as usize,
-                BigEndian::read_u64(&self.slice[0x08..0x10]) as usize,
-                BigEndian::read_u64(&self.slice[0x10..0x18]),
-            ),
-        };
+        let header = &self.slice[*position..];
+        let name_size = read_int!(&header[0x00..], &self.encoding, u64) as usize;
+        let description_size = read_int!(&header[0x08..], &self.encoding, u64) as usize;
+        let type_ = read_int!(&header[0x10..], &self.encoding, u64);
 
         let name_size_aligned = align8(name_size);
         let description_size = align8(description_size);
 
         let new_position = position.clone() + 0x18 + name_size_aligned + description_size;
         if self.slice.len() < new_position {
-            return Err(Error::slice_too_short());
+            return Err(Error::SliceTooShort);
         };
 
         let str_start = position.clone() + 0x18;
@@ -87,7 +78,7 @@ impl<'a> NoteTable<'a> {
 
         let entry = NoteEntry {
             type_: type_,
-            name: from_utf8(&self.slice[str_start..str_end]).map_err(Error::Utf8Error)?,
+            name: str::from_utf8(&self.slice[str_start..str_end]).map_err(Error::Utf8Error)?,
             description: &self.slice[str_end..new_position],
         };
 

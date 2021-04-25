@@ -18,13 +18,3 @@ pub enum UnexpectedSize {
     ProgramHeader,
     SectionHeader,
 }
-
-pub trait ErrorSliceLength {
-    fn slice_too_short() -> Self;
-}
-
-impl ErrorSliceLength for Error {
-    fn slice_too_short() -> Self {
-        Error::SliceTooShort
-    }
-}

@@ -1,12 +1,12 @@
 use core::marker::PhantomData;
 
-use super::{ErrorSliceLength, Encoding};
+use super::{Encoding, Error};
 
 pub trait Entry
 where
     Self: Sized,
 {
-    type Error: ErrorSliceLength;
+    type Error;
 
     const SIZE: usize;
 
@@ -25,7 +25,7 @@ where
 
 impl<'a, E> Table<'a, E>
 where
-    E: Entry,
+    E: Entry<Error = Error>,
 {
     pub fn new(slice: &'a [u8], encoding: Encoding) -> Self {
         Table {
@@ -44,7 +44,7 @@ where
         let end = start + E::SIZE;
 
         if self.slice.len() < end {
-            return Err(E::Error::slice_too_short());
+            return Err(Error::SliceTooShort);
         };
 
         E::new(&self.slice[start..end], self.encoding.clone())
