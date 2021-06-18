@@ -148,7 +148,8 @@ impl<'a> Elf64<'a> {
                 data: slice,
                 address: program_header.virtual_address,
             }),
-            ProgramType::Dynamic => unimplemented!("dynamic linking table"),
+            // TODO:
+            ProgramType::Dynamic => None,
             ProgramType::Interpreter => {
                 let path = str::from_utf8(slice).map_err(Error::Utf8Error)?;
                 Some(ProgramData::Interpreter(path))
@@ -208,8 +209,9 @@ impl<'a> Elf64<'a> {
                 table: Table::new(slice, encoding),
                 apply_to_section: (section_header.info as u16).into(),
             }),
-            SectionType::Hash => unimplemented!("hash table"),
-            SectionType::Dynamic => unimplemented!("dynamic linking table"),
+            // TODO:
+            SectionType::Hash => None,
+            SectionType::Dynamic => None,
             SectionType::Note => Some(SectionData::Note(NoteTable::new(slice, encoding))),
             SectionType::NoBits => None,
             SectionType::Rel => Some(SectionData::Rel {
