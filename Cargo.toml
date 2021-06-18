@@ -1,8 +1,11 @@
 [package]
 name = "elf64"
 version = "0.1.0"
-authors = ["Ranxi Verba <ranxi.verba@gmail.com>"]
+authors = ["Ranxi Verba <ranxi.verba@gmail.com>", "Vladislav Melnik <vladislav.melnik@protonmail.com>"]
 edition = "2018"
+license = "MIT"
+description = "Parse elf format"
+repository = "https://github.com/vlad9486/elf64"
 
 [dependencies]
 bitflags = { version = "1.2" }
