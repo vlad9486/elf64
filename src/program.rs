@@ -69,7 +69,7 @@ pub struct ProgramHeader {
     pub address_alignment: u64,
 }
 
-impl<'a> fmt::Debug for ProgramHeader {
+impl fmt::Debug for ProgramHeader {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("ProgramHeader")
             .field("type", &self.ty)

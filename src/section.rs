@@ -122,7 +122,7 @@ pub struct SectionHeader {
     pub number_of_entries: u64,
 }
 
-impl<'a> fmt::Debug for SectionHeader {
+impl fmt::Debug for SectionHeader {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("SectionHeader")
             .field("name", &self.name)

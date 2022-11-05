@@ -245,7 +245,7 @@ pub struct Header {
     pub section_names: Index,
 }
 
-impl<'a> fmt::Debug for Header {
+impl fmt::Debug for Header {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("Header")
             .field("class", &self.identifier.class)
@@ -305,10 +305,7 @@ impl Header {
         if raw.len() < start {
             return Err(Error::SliceTooShort);
         };
-        Ok(Table::new(
-            &raw[start..],
-            self.identifier.encoding.clone(),
-        ))
+        Ok(Table::new(&raw[start..], self.identifier.encoding.clone()))
     }
 
     pub fn section_header_table<'a>(
@@ -319,9 +316,6 @@ impl Header {
         if raw.len() < start {
             return Err(Error::SliceTooShort);
         };
-        Ok(Table::new(
-            &raw[start..],
-            self.identifier.encoding.clone(),
-        ))
+        Ok(Table::new(&raw[start..], self.identifier.encoding.clone()))
     }
 }

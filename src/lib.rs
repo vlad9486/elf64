@@ -71,10 +71,10 @@ impl<'a> Elf64<'a> {
                             return Err(Error::SliceTooShort);
                         }
                         Some(StringTable::new(&raw[start..]))
-                    },
+                    }
                     _ => None,
                 }
-            },
+            }
             _ => None,
         };
 
@@ -132,8 +132,6 @@ impl<'a> Elf64<'a> {
     }
 
     pub fn program(&self, index: usize) -> Result<Option<Program<'a>>, Error> {
-        use core::str;
-
         let program_header = self.program_table.pick(index)?;
         let encoding = self.encoding();
 
@@ -155,10 +153,7 @@ impl<'a> Elf64<'a> {
             }),
             // TODO:
             ProgramType::Dynamic => None,
-            ProgramType::Interpreter => {
-                let path = str::from_utf8(slice).map_err(Error::Utf8Error)?;
-                Some(ProgramData::Interpreter(path))
-            },
+            ProgramType::Interpreter => Some(ProgramData::Interpreter(slice)),
             ProgramType::Note => Some(ProgramData::Note(NoteTable::new(slice, encoding))),
             ProgramType::Shlib => None,
             ProgramType::ProgramHeaderTable => None,
@@ -231,13 +226,13 @@ impl<'a> Elf64<'a> {
             SectionType::OsSpecific(code) => Some(SectionData::OsSpecific { code, slice }),
             SectionType::ProcessorSprcific(code) => {
                 Some(SectionData::ProcessorSprcific { code, slice })
-            },
+            }
             SectionType::Unknown(code) => Some(SectionData::Unknown { code, slice }),
         };
 
         let name = match &self.names {
             Some(ref table) => table.pick(section_header.name as usize)?,
-            None => "",
+            None => &[],
         };
 
         Ok(data.map(|d| Section {
@@ -258,7 +253,7 @@ pub enum ProgramData<'a> {
         data: &'a [u8],
         address: Address,
     },
-    Interpreter(&'a str),
+    Interpreter(&'a [u8]),
     Note(NoteTable<'a>),
     OsSpecific {
         code: u32,
@@ -324,7 +319,7 @@ pub enum SectionData<'a> {
 #[derive(Clone)]
 pub struct Section<'a> {
     pub data: SectionData<'a>,
-    pub name: &'a str,
+    pub name: &'a [u8],
     pub flags: SectionFlags,
     pub address: Address,
     pub address_alignment: u64,

@@ -10,9 +10,7 @@ impl<'a> StringTable<'a> {
         StringTable { slice }
     }
 
-    pub fn pick(&self, index: usize) -> Result<&'a str, Error> {
-        use core::str::from_utf8;
-
+    pub fn pick(&self, index: usize) -> Result<&'a [u8], Error> {
         const MAX_LENGTH: usize = 0xff;
         let mut length = 0;
         loop {
@@ -20,20 +18,21 @@ impl<'a> StringTable<'a> {
                 return Err(Error::SliceTooShort);
             }
             if self.slice[index + length] == 0 || length == MAX_LENGTH {
+                length += 1;
                 break;
             } else {
                 length += 1;
             }
         }
 
-        from_utf8(&self.slice[index..(index + length)]).map_err(Error::Utf8Error)
+        Ok(&self.slice[index..(index + length)])
     }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct NoteEntry<'a> {
     pub ty: u64,
-    pub name: &'a str,
+    pub name: &'a [u8],
     pub description: &'a [u8],
 }
 
@@ -49,8 +48,6 @@ impl<'a> NoteTable<'a> {
     }
 
     pub fn next(&self, position: &mut usize) -> Result<NoteEntry<'a>, Error> {
-        use core::str;
-
         if self.slice.len() < *position + 0x18 {
             return Err(Error::SliceTooShort);
         };
@@ -75,7 +72,7 @@ impl<'a> NoteTable<'a> {
 
         let entry = NoteEntry {
             ty,
-            name: str::from_utf8(&self.slice[str_start..str_end]).map_err(Error::Utf8Error)?,
+            name: &self.slice[str_start..str_end],
             description: &self.slice[str_end..new_position],
         };
 
