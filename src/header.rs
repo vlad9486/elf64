@@ -302,12 +302,11 @@ impl Header {
         raw: &'a [u8],
     ) -> Result<Table<'a, ProgramHeader>, Error> {
         let start = self.program_headers_offset as usize;
-        let end = start + (self.program_header_number as usize) * ProgramHeader::SIZE;
-        if raw.len() < end {
+        if raw.len() < start {
             return Err(Error::SliceTooShort);
         };
         Ok(Table::new(
-            &raw[start..end],
+            &raw[start..],
             self.identifier.encoding.clone(),
         ))
     }
@@ -317,12 +316,11 @@ impl Header {
         raw: &'a [u8],
     ) -> Result<Table<'a, SectionHeader>, Error> {
         let start = self.section_headers_offset as usize;
-        let end = start + (self.section_header_number as usize) * SectionHeader::SIZE;
-        if raw.len() < end {
+        if raw.len() < start {
             return Err(Error::SliceTooShort);
         };
         Ok(Table::new(
-            &raw[start..end],
+            &raw[start..],
             self.identifier.encoding.clone(),
         ))
     }

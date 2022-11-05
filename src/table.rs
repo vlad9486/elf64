@@ -34,18 +34,19 @@ where
         }
     }
 
-    pub fn length(&self) -> usize {
-        self.slice.len() / E::SIZE
-    }
-
     pub fn pick(&self, index: usize) -> Result<E, E::Error> {
         let start = index * E::SIZE;
-        let end = start + E::SIZE;
 
-        if self.slice.len() < end {
+        let slice = if self.slice.len() < start {
+            return Err(Error::SliceTooShort);
+        } else {
+            &self.slice[start..]
+        };
+
+        if slice.len() < E::SIZE {
             return Err(Error::SliceTooShort);
         };
 
-        E::new(&self.slice[start..end], self.encoding.clone())
+        E::new(&slice[..E::SIZE], self.encoding.clone())
     }
 }

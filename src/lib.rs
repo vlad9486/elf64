@@ -6,8 +6,8 @@ extern crate bitflags;
 
 macro_rules! read_int {
     ($slice:expr, $encoding:expr, $ty:ty) => {{
-        use core::{mem, convert::TryFrom};
-        let a = TryFrom::try_from(&$slice[..mem::size_of::<$ty>()]).unwrap();
+        let mut a = [0; core::mem::size_of::<$ty>()];
+        a.clone_from_slice(&$slice[..core::mem::size_of::<$ty>()]);
         match $encoding {
             &Encoding::Little => <$ty>::from_le_bytes(a),
             &Encoding::Big => <$ty>::from_be_bytes(a),
@@ -67,8 +67,10 @@ impl<'a> Elf64<'a> {
                 match names_section.ty {
                     SectionType::StringTable => {
                         let start = names_section.offset as usize;
-                        let end = start + names_section.size as usize;
-                        Some(StringTable::new(&raw[start..end]))
+                        if raw.len() < start {
+                            return Err(Error::SliceTooShort);
+                        }
+                        Some(StringTable::new(&raw[start..]))
                     },
                     _ => None,
                 }
@@ -126,7 +128,7 @@ impl<'a> Elf64<'a> {
     }
 
     pub fn program_number(&self) -> usize {
-        self.program_table.length()
+        self.header.program_header_number as usize
     }
 
     pub fn program(&self, index: usize) -> Result<Option<Program<'a>>, Error> {
@@ -135,12 +137,15 @@ impl<'a> Elf64<'a> {
         let program_header = self.program_table.pick(index)?;
         let encoding = self.encoding();
 
-        let start = program_header.file_offset as usize;
-        let end = start + (program_header.file_size as usize);
-        if self.raw.len() < end {
+        let slice = if self.raw.len() < program_header.file_offset as usize {
+            return Err(Error::SliceTooShort);
+        } else {
+            &self.raw[(program_header.file_offset as usize)..]
+        };
+        if slice.len() < program_header.file_size as usize {
             return Err(Error::SliceTooShort);
         };
-        let slice = &self.raw[start..end];
+        let slice = &slice[..(program_header.file_size as usize)];
 
         let data = match program_header.ty {
             ProgramType::Null => None,
@@ -183,7 +188,7 @@ impl<'a> Elf64<'a> {
     }
 
     pub fn section_number(&self) -> usize {
-        self.section_table.length()
+        self.header.section_header_number as usize
     }
 
     pub fn section(&self, index: usize) -> Result<Option<Section<'a>>, Error> {
