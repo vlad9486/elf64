@@ -235,8 +235,8 @@ impl<'a> Elf64<'a> {
             None => &[],
         };
 
-        Ok(data.map(|d| Section {
-            data: d,
+        Ok(data.map(|data| Section {
+            data,
             name,
             flags: section_header.flags,
             address: section_header.address,

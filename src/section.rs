@@ -24,19 +24,6 @@ impl From<u16> for Index {
     }
 }
 
-impl From<Index> for u16 {
-    fn from(v: Index) -> Self {
-        match v {
-            Index::Undefined => 0x0000,
-            Index::ProcessorSecific(t) => 0xff00 + ((t as u16) & 0x001f),
-            Index::EnvironmentSpecific(t) => 0xff20 + ((t as u16) & 0x001f),
-            Index::AbsoluteValue => 0xfff1,
-            Index::Common => 0xfff2,
-            Index::Regular(t) => t,
-        }
-    }
-}
-
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum SectionType {
     Null,
@@ -74,28 +61,6 @@ impl From<u32> for SectionType {
             t @ 0x60000000..=0x6fffffff => SectionType::OsSpecific(t),
             t @ 0x70000000..=0x7fffffff => SectionType::ProcessorSprcific(t),
             t => SectionType::Unknown(t),
-        }
-    }
-}
-
-impl From<SectionType> for u32 {
-    fn from(v: SectionType) -> Self {
-        match v {
-            SectionType::Null => 0x00000000,
-            SectionType::ProgramBits => 0x00000001,
-            SectionType::SymbolTable => 0x00000002,
-            SectionType::StringTable => 0x00000003,
-            SectionType::Rela => 0x00000004,
-            SectionType::Hash => 0x00000005,
-            SectionType::Dynamic => 0x00000006,
-            SectionType::Note => 0x00000007,
-            SectionType::NoBits => 0x00000008,
-            SectionType::Rel => 0x00000009,
-            SectionType::Shlib => 0x0000000a,
-            SectionType::DynamicSymbolTable => 0x0000000b,
-            SectionType::OsSpecific(t) => 0x60000000 + (t & 0x0fffffff),
-            SectionType::ProcessorSprcific(t) => 0x70000000 + (t & 0x0fffffff),
-            SectionType::Unknown(t) => t,
         }
     }
 }

@@ -1,4 +1,5 @@
 use core::marker::PhantomData;
+
 use super::{Encoding, Error};
 
 pub trait Entry

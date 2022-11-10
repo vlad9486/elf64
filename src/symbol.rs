@@ -53,31 +53,6 @@ impl From<u8> for SymbolInfo {
     }
 }
 
-impl From<SymbolInfo> for u8 {
-    fn from(v: SymbolInfo) -> Self {
-        let SymbolInfo { binding, ty } = v;
-        let high = match binding {
-            SymbolBinding::Local => 0x00,
-            SymbolBinding::Global => 0x01,
-            SymbolBinding::Weak => 0x02,
-            SymbolBinding::OsSpecific(t) => t + 0x0a,
-            SymbolBinding::ProcessorSpecific(t) => t + 0x0d,
-            SymbolBinding::Unknown(t) => t,
-        };
-        let low = match ty {
-            SymbolType::Nothing => 0x00,
-            SymbolType::Object => 0x01,
-            SymbolType::Function => 0x02,
-            SymbolType::Section => 0x03,
-            SymbolType::File => 0x04,
-            SymbolType::OsSpecific(t) => t + 0x0a,
-            SymbolType::ProcessorSpecific(t) => t + 0x0d,
-            SymbolType::Unknown(t) => t,
-        };
-        high * 0x10 + low
-    }
-}
-
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct SymbolEntry {
     pub name: u32,

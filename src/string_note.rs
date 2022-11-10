@@ -27,6 +27,10 @@ impl<'a> StringTable<'a> {
 
         Ok(&self.slice[index..(index + length)])
     }
+
+    pub fn as_raw(&self) -> &'a [u8] {
+        self.slice
+    }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]

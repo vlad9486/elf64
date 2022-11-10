@@ -1,5 +1,8 @@
 use core::{convert::TryFrom, fmt};
-use super::{Error, UnexpectedSize, Address, Offset, Index, SectionHeader, ProgramHeader, Entry, Table};
+
+use super::{
+    Error, UnexpectedSize, Address, Offset, Index, SectionHeader, ProgramHeader, Entry, Table,
+};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum Class {
@@ -18,16 +21,6 @@ impl From<u8> for Class {
     }
 }
 
-impl From<Class> for u8 {
-    fn from(v: Class) -> Self {
-        match v {
-            Class::_32 => 0x01,
-            Class::_64 => 0x02,
-            Class::Unknown(t) => t,
-        }
-    }
-}
-
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum Encoding {
     Little,
@@ -42,15 +35,6 @@ impl TryFrom<u8> for Encoding {
             1 => Ok(Encoding::Little),
             2 => Ok(Encoding::Big),
             t => Err(t),
-        }
-    }
-}
-
-impl From<Encoding> for u8 {
-    fn from(v: Encoding) -> Self {
-        match v {
-            Encoding::Little => 0x01,
-            Encoding::Big => 0x02,
         }
     }
 }
@@ -86,25 +70,6 @@ impl From<u8> for Abi {
             0x0d => Abi::OpenVMS,
             0xff => Abi::Standalone,
             t => Abi::Unknown(t),
-        }
-    }
-}
-
-impl From<Abi> for u8 {
-    fn from(v: Abi) -> Self {
-        match v {
-            Abi::SystemV => 0x00,
-            Abi::HpUx => 0x01,
-            Abi::NetBSD => 0x02,
-            Abi::Linux => 0x03,
-            Abi::Solaris => 0x06,
-            Abi::Aix => 0x07,
-            Abi::Irix => 0x08,
-            Abi::FreeBSD => 0x09,
-            Abi::OpenBSD => 0x0c,
-            Abi::OpenVMS => 0x0d,
-            Abi::Standalone => 0xff,
-            Abi::Unknown(t) => t,
         }
     }
 }
@@ -162,20 +127,6 @@ impl From<u16> for Type {
     }
 }
 
-impl From<Type> for u16 {
-    fn from(v: Type) -> Self {
-        match v {
-            Type::None => 0x0000,
-            Type::Relocatable => 0x0001,
-            Type::Executable => 0x0002,
-            Type::SharedObject => 0x0003,
-            Type::Core => 0x0004,
-            Type::OsSpecific(t) => 0xfe00 + (t as u16),
-            Type::ProcessorSpecific(t) => 0xff00 + (t as u16),
-            Type::Unknown(t) => t,
-        }
-    }
-}
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum Machine {
     None,
@@ -207,25 +158,6 @@ impl From<u16> for Machine {
             0x00b7 => Machine::AArch64,
             0x00f7 => Machine::Bpf,
             t => Machine::Unknown(t),
-        }
-    }
-}
-
-impl From<Machine> for u16 {
-    fn from(v: Machine) -> Self {
-        match v {
-            Machine::None => 0x0000,
-            Machine::Sparc => 0x0002,
-            Machine::X86 => 0x0003,
-            Machine::Mips => 0x0008,
-            Machine::PowerPC => 0x0014,
-            Machine::Arm => 0x0028,
-            Machine::SuperH => 0x002a,
-            Machine::Ia64 => 0x0032,
-            Machine::X86_64 => 0x003e,
-            Machine::AArch64 => 0x00b7,
-            Machine::Bpf => 0x00f7,
-            Machine::Unknown(t) => t,
         }
     }
 }

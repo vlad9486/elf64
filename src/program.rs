@@ -32,23 +32,6 @@ impl From<u32> for ProgramType {
     }
 }
 
-impl From<ProgramType> for u32 {
-    fn from(v: ProgramType) -> Self {
-        match v {
-            ProgramType::Null => 0x00000000,
-            ProgramType::Load => 0x00000001,
-            ProgramType::Dynamic => 0x00000002,
-            ProgramType::Interpreter => 0x00000003,
-            ProgramType::Note => 0x00000004,
-            ProgramType::Shlib => 0x00000005,
-            ProgramType::ProgramHeaderTable => 0x00000006,
-            ProgramType::OsSpecific(t) => 0x60000000 + (t & 0x0fffffff),
-            ProgramType::ProcessorSprcific(t) => 0x70000000 + (t & 0x0fffffff),
-            ProgramType::Unknown(t) => t,
-        }
-    }
-}
-
 bitflags! {
     pub struct ProgramFlags: u32 {
         const EXECUTE = 0b00000001;

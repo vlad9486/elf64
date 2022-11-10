@@ -1,6 +1,6 @@
 [package]
 name = "elf64"
-version = "0.1.0"
+version = "0.1.2"
 authors = ["Ranxi Verba <ranxi.verba@gmail.com>", "Vladislav Melnik <vladislav.melnik@protonmail.com>"]
 edition = "2018"
 license = "MIT"
