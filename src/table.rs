@@ -36,18 +36,10 @@ where
     }
 
     pub fn pick(&self, index: usize) -> Result<E, E::Error> {
-        let start = index * E::SIZE;
-
-        let slice = if self.slice.len() < start {
+        if self.slice.len() < index * E::SIZE {
             return Err(Error::SliceTooShort);
-        } else {
-            &self.slice[start..]
-        };
+        }
 
-        if slice.len() < E::SIZE {
-            return Err(Error::SliceTooShort);
-        };
-
-        E::new(&slice[..E::SIZE], self.encoding.clone())
+        E::new(&self.slice[(index * E::SIZE)..], self.encoding.clone())
     }
 }

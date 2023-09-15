@@ -1,8 +1,6 @@
 use core::{convert::TryFrom, fmt};
 
-use super::{
-    Error, UnexpectedSize, Address, Offset, Index, SectionHeader, ProgramHeader, Entry, Table,
-};
+use super::{Error, UnexpectedSize, Address, Offset, Index, SectionHeader, ProgramHeader, Entry, Table};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum Class {
@@ -236,7 +234,7 @@ impl Header {
         let start = self.program_headers_offset as usize;
         if raw.len() < start {
             return Err(Error::SliceTooShort);
-        };
+        }
         Ok(Table::new(&raw[start..], self.identifier.encoding.clone()))
     }
 
@@ -247,7 +245,7 @@ impl Header {
         let start = self.section_headers_offset as usize;
         if raw.len() < start {
             return Err(Error::SliceTooShort);
-        };
+        }
         Ok(Table::new(&raw[start..], self.identifier.encoding.clone()))
     }
 }

@@ -55,7 +55,7 @@ impl<'a> Elf64<'a> {
     pub fn new(raw: &'a [u8]) -> Result<Self, Error> {
         if raw.len() < Header::SIZE {
             return Err(Error::SliceTooShort);
-        };
+        }
 
         let header = Header::new(&raw[0..Header::SIZE])?;
         let program_table = header.program_header_table(raw)?;
@@ -142,7 +142,7 @@ impl<'a> Elf64<'a> {
         };
         if slice.len() < program_header.file_size as usize {
             return Err(Error::SliceTooShort);
-        };
+        }
         let slice = &slice[..(program_header.file_size as usize)];
 
         let data = match program_header.ty {
@@ -192,9 +192,9 @@ impl<'a> Elf64<'a> {
 
         let start = section_header.offset as usize;
         let end = start + (section_header.size as usize);
-        if self.raw.len() < end {
+        if self.raw.len() < end || start > end {
             return Err(Error::SliceTooShort);
-        };
+        }
         let slice = &self.raw[start..end];
 
         let data = match section_header.ty {
